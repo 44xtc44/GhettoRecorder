@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools >= 42.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GhettoRecorder"
+version = "0.8"
+description = "command line internet radio grabber with listen capabilities"
+keywords = ['audio', 'aac repair',]
+license = {file = "LICENSE.rst"}
+readme = "README.md"
+requires-python = ">=3.7"
+dynamic = ['authors',]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Multimedia :: Sound/Audio :: Capture/Recording",
+]
+dependencies = [
+	"aacRepair~=0.3",
+	"certifi~=2021.10.8",
+	"configparser~=5.0.2",
+]
+
+[project.urls]
+homepage = "https://github.com/44xtc44"
+documentation = "https://GhettoRecorder.readthedocs.io/"
+repository = "https://github.com/44xtc44/GhettoRecorder"
+
+[project.scripts]
+ghettorecorder = "ghettorecorder.cmd:main"
+
+
+[tool.pytest.ini_options]
+addopts = "--cov=."
+testpaths = "."
+
+[tool.mypy]
+mypy_path = "GhettoRecorder"
+check_untyped_defs = true
+disallow_any_generics = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+no_implicit_reexport = true
