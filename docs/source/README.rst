@@ -125,7 +125,7 @@ aac file repair
     Enter a path, OS syntax (f:\10 or /home ) -->:f:\6aac
     	created: f:\6aac
     	f:\6aac\aac_repair created
-    [ COPY(s) in f:\6aap\aac_repair ]
+    [ COPY(s) in f:\6aac\aac_repair ]
     ----- 1 file(s) failed -----
     f:\6aac\Sergey Sirotin & Golden Light Orchestra - Around The World.aacp
     ValueError non-hexadecimal number found in fromhex() arg at position 5438113
