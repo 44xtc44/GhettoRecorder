@@ -2,7 +2,7 @@ import ssl
 import certifi
 import urllib.request
 from urllib.error import URLError, HTTPError
-from api import ghettoApi
+from ghettorecorder.api import ghettoApi
 
 context_ssl = ssl.create_default_context(cafile=certifi.where())
 

@@ -4,7 +4,7 @@ entry point in pyproject.toml
 """
 import sys
 from os import path
-import ghetto_recorder
+import ghettorecorder.ghetto_recorder as ghetto_recorder
 
 this_dir = path.abspath(path.join(path.dirname(__file__)))
 sys.path.append(this_dir)

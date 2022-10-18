@@ -35,7 +35,7 @@ Methods:
 """
 import os
 from aacrepair import AacRepair
-from ghetto_ini import GIni
+from ghettorecorder.ghetto_ini import GIni
 
 
 def menu_main():

@@ -1,7 +1,6 @@
 """ GhettoRecorder config
 settings.ini file
 """
-
 import os
 import configparser
 from pathlib import Path as Pathlib_path
@@ -84,11 +83,10 @@ class GIni:
     @staticmethod
     def global_config_get(print_config=False):
         """ extract GLOBAL section from settings.ini, if available
-        GLOBAL can be: not there, empty, or with values (test case)
-
-        Method:
+        GLOBAL can be - not there, empty, or with values (test case)
+        Method
             GIni.record_path_test() - exit if no path
-        Raise:
+        Raise
             show that there is no config, but can proceed without (GIni.record_path_test(), ok)
         """
         config = GIni.record_path_test()

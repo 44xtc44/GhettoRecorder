@@ -1,21 +1,21 @@
 """ update a json dict file in intervals, like the eisenradio database
-    Functions
-    ---------
-    start_ghetto_blacklist_writer_daemon() - run the thread for writing blacklists
-    run_blacklist_writer()                 - loop to run 'update_radios_blacklists()'
-    update_radios_blacklists()             - read blacklist file and update it if recorder got a new title
-    skipped_in_session(radio)              - recorder refused to write blacklisted titles n-times
+Functions:
+start_ghetto_blacklist_writer_daemon() . run the thread for writing blacklists
+run_blacklist_writer()                 . loop to run 'update_radios_blacklists()'
+update_radios_blacklists()             . read blacklist file and update it if recorder got a new title
+skipped_in_session(radio)              . recorder refused to write blacklisted titles n-times
 
-  interval of reading:     "recorder_new_title_dict[str_radio]" where recorder writes EVERY new title and
-  recorder compare it with "ghettoApi.all_blacklists_dict[str_radio]"
-  if new title is not found in 'all_blacklists_dict' on api, append title and dump the whole dict to disk
-  if a title is 3min long, dump all 3min
+interval of reading:
+"recorder_new_title_dict[str_radio]" where recorder writes EVERY new title and
+recorder compare it with "ghettoApi.all_blacklists_dict[str_radio]"
+if new title is not found in 'all_blacklists_dict' on api, append title and dump the whole dict to disk
+if a title is 3min long, dump all 3min
  """
 import time
 import copy
 import json
 import threading
-from api import ghettoApi
+from ghettorecorder.api import ghettoApi
 
 
 def start_ghetto_blacklist_writer_daemon():
@@ -39,10 +39,9 @@ def run_blacklist_writer():
 
 def update_radios_blacklists():
     """
-    * recorder_new_title_dict {radio(n): title}
-    *     all_blacklists_dict {radio(n): [blacklist]}
-    pseudo sample
-    -------------
+    .recorder_new_title_dict {radio(n): title}
+    .    all_blacklists_dict {radio(n): [blacklist]}
+    pseudo sample:
     recorder file dict :    recorder_new_title_dict['radio5'] = 'ASAP - I want to be part of the blacklist'
     recorder compares:          all_blacklists_dict['radio5'] = ['The Listies - I am on a list', 'OMG - Mee Too']
     comparison

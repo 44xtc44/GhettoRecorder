@@ -12,7 +12,7 @@ Functions
 import os
 import shutil
 import getpass
-import ghetto_ini as ghetto_ini
+import ghettorecorder.ghetto_ini as ghetto_ini
 
 
 def container_setup_use():

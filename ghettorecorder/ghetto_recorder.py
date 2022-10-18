@@ -53,13 +53,13 @@ import concurrent.futures
 from time import sleep, strftime
 from pathlib import Path as Pathlib_path
 from urllib.request import urlopen, Request
-from api import ghettoApi
-from ghetto_net import GNet
-from ghetto_meta import GMeta
-import ghetto_menu as ghetto_menu
-import ghetto_http_srv as ghetto_http_srv
-import ghetto_container as ghetto_container
-import ghetto_blacklist as ghetto_blacklist
+from ghettorecorder.api import ghettoApi
+from ghettorecorder.ghetto_net import GNet
+from ghettorecorder.ghetto_meta import GMeta
+import ghettorecorder.ghetto_menu as ghetto_menu
+import ghettorecorder.ghetto_http_srv as ghetto_http_srv
+import ghettorecorder.ghetto_container as ghetto_container
+import ghettorecorder.ghetto_blacklist as ghetto_blacklist
 
 # android ssl fix, mac seems to have same fun; used by urllib request functions
 os.environ['SSL_CERT_FILE'] = certifi.where()   # used in flask __init__.py; worked in Android, but black box
@@ -77,9 +77,8 @@ print(f'ghettorecorder {version} (an Eisenradio module)')
 
 class GBase:
     """base class attributes and utils methods,
-    prefix <terminal_> is exclusively used for command line version (running ghetto_recorder.py)
+    prefix terminal_ is exclusively used for command line version (running ghetto_recorder.py)
     Attributes
-    ----------
         terminal_radio_list = []  # all radios in settings.ini
         terminal_blacklist_name = "blacklist.json" - name blacklist
         terminal_http_server_avail_flag = True  - one thread may create the http server instance than switch off, False
@@ -89,7 +88,6 @@ class GBase:
         radio_base_dir = ""  - html, eishome.set_radio_path(); terminal version set in ghetto_ini.py (circular import)
 
     Methods
-    -------
         make_directory(path)            - make parent and subdirectories at once
         remove_special_chars(str_name)  - remove special characters for writing to file system
         this_time()                     - mark a recorded title if no metadata are available
@@ -117,8 +115,7 @@ class GBase:
         """ make parent and subdirectories at once
 
         Exception
-        ---------
-        make write error public
+            make write error public
         """
         try:
             os.makedirs(path, exist_ok=True)
@@ -475,28 +472,24 @@ class GRecorder:
         handler_http_srv_object - "try" to create an instance of GRecorder.http_srv_object_create(str_radio)
 
             on title change
-            ---------------
-            GRecorder.record_write_last            - last chunk of title must be cleaned if aac file
-            GRecorder.g_recorder_cache_the_file    - store the concatenated chunks since last title change, copy
-            GRecorder.g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
-            full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
+                GRecorder.record_write_last            - last chunk of title must be cleaned if aac file
+                GRecorder.g_recorder_cache_the_file    - store the concatenated chunks since last title change, copy
+                GRecorder.g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
+                full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
 
             title grabbing
-            --------------
-             new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
-             record_file.write(new_chunk)                                 - write to recorder file
-             handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
+                new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
+                record_file.write(new_chunk)                                 - write to recorder file
+                handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
 
              loop exit
-             ---------
-             GRecorder.g_recorder_teardown(str_radio, record_file, ghetto_recorder)
-               clean up, mark and copy incomplete file, reset recorder file to zero
+                GRecorder.g_recorder_teardown(str_radio, record_file, ghetto_recorder)
+                  clean up, mark and copy incomplete file, reset recorder file to zero
 
              Exception
-             ---------
-             Network errors occurred in reality,
-             prepare for temporary local network card failure
-             write message to analyze
+                Network errors occurred in reality,
+                prepare for temporary local network card failure
+                write message to analyze
         """
         handler_http_srv_object = GRecorder.http_srv_object_create(str_radio)
         new_chunk = ""
@@ -573,9 +566,8 @@ class GRecorder:
 
         so browser do not stop with silent error and will play next file
         Exception
-        ---------
-        real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
-        work against it, to not break the flow
+            real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
+            work against it, to not break the flow
         """
         hex_chunk = chunk.hex()
         start, end = -1, -5
@@ -606,10 +598,9 @@ class GRecorder:
         convert byte stream to hex, search ff f1 index_of_chunk[0] to index_of_chunk[4]
         shift the search frame in hex to right, cut out from start and return as bytes
         Exception
-        ---------
-        error occurred in Tail, but be prepared
-        real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
-        work against it, to not break the flow
+            error occurred in Tail, but be prepared
+            real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
+            work against it, to not break the flow
         """
         hex_chunk = chunk.hex()
         start, end = 0, 4
@@ -636,9 +627,8 @@ class GRecorder:
         """" return the request object of the url, or False
         url was tested in Gnet with "urllib" and context (SSL) manager
         Exception
-        ---------
-        this is the main request to 'dock' to the radio server
-        we want to know why and when the connection was broken
+            this is the main request to 'dock' to the radio server
+            we want to know why and when the connection was broken
         """""
         try:
             request = urllib.request.urlopen(url, timeout=3000, context=context_ssl)
@@ -654,16 +644,13 @@ class GRecorder:
         ---------
             GRecorder.g_recorder_request(url) - open the radio data connection and return the response object
             record
-            ------
                 GRecorder.g_recorder_await_head(str_radio)          - rec head function gives start for rec tail, this
                 GRecorder.g_recorder_path_transfer_test(str_radio)  - exit if head can not get a valid path, fail
                 GRecorder.g_recorder_rec(... )                      - call the recorder and present the response object
             listen
-            ------
                 loop
                 GRecorder.g_recorder_write_queue(...) - feed the buffer dictionary for html audio element endpoints
                 break
-                -----
                     GRecorder.g_recorder_empty_queue(str_radio) - remove all buffer from queue to drain audio element
         """
         audio_stream_queue = queue.Queue(maxsize=5)  # for safety if listen and browser disconnects (no get - pull)
@@ -766,18 +753,15 @@ def record(str_radio, url, str_action):
 
     server was tested alive, but network errors are common
     Methods
-    -------
         GNet.stream_filetype_url(url, str_radio) - return file type of stream, exit the radio on error
 
     Dictionaries
-    ------------
         GRecorder.current_song_dict[str_radio]       - rec, "unknown_title" first file name; listen, "" first title
         GRecorder.start_write_command[str_radio]     - if recorder "head" is ready set True
         GRecorder.skipped_in_session_dict[str_radio] - skipped titles during session for EisenRadio html info
         GBase.dict_exit[str_radio]                   - True for thread exit its loop
 
-        Exception
-        ---------
+    Exception
         a radio changed the endpoint, responded ok but without content-type, no problem
         next radio send bool value, raised TypeError
         do a clean exit
@@ -932,8 +916,7 @@ def terminal_populate_new_blacklist(path):
     add new radios to the list, if list already exists
 
     Exception
-    ---------
-    make write error public
+        make write error public
     """
     actual_radio_list = ghetto_menu.terminal_record_all_radios_get()
     first_key = 'GhettoRecorder message'
@@ -958,8 +941,7 @@ def terminal_update_blacklist(path):
     update loaded dict, write dict
 
     Exception
-    ---------
-    make write error public
+        make write error public
     """
     actual_radio_list = ghetto_menu.terminal_record_all_radios_get()
     with open(os.path.join(path), "r") as reader:
@@ -1022,50 +1004,44 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 def terminal_main():
-    """ terminal version (GhettoRecorder package) with a menu, settings.ini and blacklist, no database
-    functions for command line start with <terminal_>
+    """ command line version (GhettoRecorder package) with a menu, settings.ini and blacklist, no database
+    functions for command line start with terminal_
 
     Modules for terminal command line, THE GhettoRecorder:
-    -------
-    ghetto_blacklist.py - blacklist writer updates json file and ghettoApi for recorder to find old titles'
-    ghetto_container.py - prepare for user interaction in container env
-    ghetto_help.py      - ?, want to push all help to "readthedocs" website
-    ghetto_ini.py       - reads, updates sections ([GLOBAL]) in settings.ini config file
-    ghetto_menu.py      - display config file content, calls ghetto_ini to update settings for path and blacklist
-    ghetto_recorder.py  - main module, GBase.radio_base_dir pulled from ghetto_ini to avoid circular import
-    ghettoApi           - reuse methods of Eisenradio to avoid import problems, push blacklist name ..., __init__.py
-    settings.ini        - configuration file
+        ghetto_blacklist.py - blacklist writer updates json file and ghettoApi for recorder to find old titles'
+        ghetto_container.py - prepare for user interaction in container env
+        ghetto_help.py      - ?, want to push all help to "readthedocs" website
+        ghetto_ini.py       - reads, updates sections ([GLOBAL]) in settings.ini config file
+        ghetto_menu.py      - display config file content, calls ghetto_ini to update settings for path and blacklist
+        ghetto_recorder.py  - main module, GBase.radio_base_dir pulled from ghetto_ini to avoid circular import
+        ghettoApi           - reuse methods of Eisenradio to avoid import problems, push blacklist name ..., __init__.py
+        settings.ini        - configuration file
 
     Record_path:
-    ------------
-    one, same folder as this module
-    two, path from [GLOBAL] setting
-    three, container path
-    four, set path from menu option
-    terminal_custom_record_path_get() set GBase.radio_base_dir and shows in menu;
+        one, same folder as this module
+        two, path from [GLOBAL] setting
+        three, container path
+        four, set path from menu option
+        terminal_custom_record_path_get() set GBase.radio_base_dir and shows in menu;
 
     Container:
-    ----------
-    the Python package is already deployed in a docker or snap container, prepare for user interaction
+        the Python package is already deployed in a docker or snap container, prepare for user interaction
 
     Threads:
-    --------
-    metadata thread extracts titles in intervals,
-    head, cleans' metadata, adds timestamp if no metadata, provides the full path, gives recorder start command,
-    tail, recorder feeds http server, cleans aac/aacp segments and writes stream segments as a file
+        metadata thread extracts titles in intervals,
+        head, cleans' metadata, adds timestamp if no metadata, provides the full path, gives recorder start command,
+        tail, recorder feeds http server, cleans aac/aacp segments and writes stream segments as a file
 
     Blacklist:
-    ----------
-    Name, "blacklist.json", a json dictionary
-    "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for each radio
-    "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main(), if set recorder refuses to copy
+        Name, "blacklist.json", a json dictionary
+        "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for each radio
+        "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main, if set recorder refuses to copy
 
     Info:
-    -----
-    Recorder "g_recorder_cache_the_file()" (copy file, reset seek recorder file) looks if blacklist feature is enabled
-    "ghettoApi.blacklist_enabled_global"
-    then it looks if title is not in its blacklist
-    "ghettoApi.all_blacklists_dict[str_radio]" {'goa_psy': ['_incomplete_Midi Rico - Explosions Wackier animaskntru'],}
+        Recorder "g_recorder_cache_the_file()" (copy file, reset seek recorder file) looks if blacklist feature is enabled
+        "ghettoApi.blacklist_enabled_global"
+        then it looks if title is not in its blacklist
+        "ghettoApi.all_blacklists_dict[str_radio]" {'goa_psy': ['_incomplete_Midi Rico - Explosions Wackier animaskntru'],}
     """
     radio_terminal_dict = {}
     GBase.terminal_run = True  # we run in a terminal window
