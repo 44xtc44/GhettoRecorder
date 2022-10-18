@@ -53,13 +53,13 @@ import concurrent.futures
 from time import sleep, strftime
 from pathlib import Path as Pathlib_path
 from urllib.request import urlopen, Request
-from ghettorecorder import ghettoApi
-from ghettorecorder.ghetto_net import GNet
-from ghettorecorder.ghetto_meta import GMeta
-import ghettorecorder.ghetto_menu as ghetto_menu
-import ghettorecorder.ghetto_http_srv as ghetto_http_srv
-import ghettorecorder.ghetto_container as ghetto_container
-import ghettorecorder.ghetto_blacklist as ghetto_blacklist
+from api import ghettoApi
+from ghetto_net import GNet
+from ghetto_meta import GMeta
+import ghetto_menu as ghetto_menu
+import ghetto_http_srv as ghetto_http_srv
+import ghetto_container as ghetto_container
+import ghetto_blacklist as ghetto_blacklist
 
 # android ssl fix, mac seems to have same fun; used by urllib request functions
 os.environ['SSL_CERT_FILE'] = certifi.where()   # used in flask __init__.py; worked in Android, but black box
@@ -67,6 +67,9 @@ context_ssl = ssl.create_default_context(cafile=certifi.where())   # works in An
 
 # logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] (%(threadName)-10s) %(message)s',)
 # logging.basicConfig(level=logging.INFO, format='[%(levelname)s] (%(threadName)-10s) %(message)s',)
+
+this_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.abspath(this_dir))
 
 version = '0.8'
 print(f'ghettorecorder {version} (an Eisenradio module)')

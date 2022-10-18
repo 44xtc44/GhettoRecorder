@@ -15,7 +15,7 @@ import time
 import copy
 import json
 import threading
-from ghettorecorder import ghettoApi
+from api import ghettoApi
 
 
 def start_ghetto_blacklist_writer_daemon():
