@@ -12,7 +12,6 @@ Contents
    modules
    README
    
-   
 Indices and tables
 ==================
 
