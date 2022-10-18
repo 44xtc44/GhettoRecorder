@@ -1,6 +1,6 @@
 Documentation - GhettoRecorder
 ==============================
-
+command line internet radio grabber with listen capabilities
    
 Contents
 ========
@@ -8,9 +8,9 @@ Contents
 
 .. toctree::
    :maxdepth: 2
-   
-   README  
+
    modules
+   README
    
 Indices and tables
 ==================
