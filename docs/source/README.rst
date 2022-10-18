@@ -1,61 +1,157 @@
-Documentation - aac Repair
-==========================
-repair aac and aacPlus files grabbed from the internet
+Documentation - GhettoRecorder
+==============================
+command line internet radio grabber with listen capabilities
 
 Info
 ----
-Aac files consist of multiple segments, frames. Each frame has a header and payload. 
-Browser get stuck if aac file frame is defective and will not start to play or refuse to play next aac file.
-This will stop the entire playlist.
-File gets trimmed from head to tail, to remove defective frames. 
-Cut off byte count is shown in the summary (aac_repair.txt). 
+| GhettoRecorder can be copied elsewhere and run from its folder structure.
+| It can be deployed as a Python package by using the config files.
+| GhettoRecorder package can be called on commandline ``$ ghettorecorder`` directly.
 
-Usage::
-
-   from aacrepair import AacRepair
-	
-   # 'r' before a string tells the Python interpreter to treat backslashes as a literal (raw) character
-   aacRepair = AacRepair(r"F:\propaganda-podcasts")
-   aacRepair.repair()
+| Multiple menu options are available:
+|   * Custom save path (written to config)
+|   * Title blacklist  (written to config)
+|   * Store config file elsewhere
+|   * Repair of aac files https://aacrepair.readthedocs.io/
 
 
-Instantiate AacRepair class with two possible arguments, mandatory folder path and optional dictionary. 
- 1. No dictionary provided. Folder path is used as list to import files into a dictionary AND store repaired files.
- 2. A dictionary of files is provided. Folder path is used to store repaired files. (best use on web server)
+Configuration File
+------------------
+'Settings.ini' is the config file for GhettoRecorder.
+INI files consist of sections to divide different settings.
 
 
-Web Server
- * endpoint converts uploaded files from file storage type to bytestream, use .read() function
-    * web server gets not the file path, only file name - needs path to store repaired files
-    * dictionary {file(n).aac: b'\x65\x66\x67\x00\x10\x00\x00\x00\x04\x00'}
+| [STATIONS] is used for radio connection information
+| anime_jp = ``http://streamingv2.shoutcast.com/japanimradio-tokyo``
+
+| [GLOBAL] stores blacklist status and the parent save directory location
+| blacklist_enable = ``True``
+| save_to_dir = ``f:\31``
 
 
-code::
+Usage
+-----
+Main Menu
+^^^^^^^^^
+::
 
-   files = request.files.getlist('fileUploadAcpRepair')
-   f_dict = {f.filename: f.read() if f.filename[-5:] == ".aacp" or f.filename[-4:] == ".aac" else None for f in files}
-   aacRepair = AacRepair("/home/Kitty/aac_files", f_dict)
-   aacRepair.repair()
+    menu 'Main'
+    1 -- Record (local listen option)
+    2 -- Change parent record path
+    3 -- Enable/disable blacklists
+    4 -- Set path to config, settings.ini
+    5 -- aac file repair
+    6 -- Exit
 
-File System
- * List of files in folder is written to dictionary {file_name_key: file_byte_content_value}
 
-code::
+Record Menu
+^^^^^^^^^^^
+::
 
-   aacRepair = AacRepair("/home/Kitty/aac_files")
-   aacRepair.repair()
+    0 	>> aacchill             <<
+    1 	>> 80ies_nl             <<
+    2 	>> anime_jp             <<
+    3 	>> blues_uk             <<
+    4 	>> br24                 <<
+    ...
+    Enter to record -->:
 
-pip install::
+| Write the leading Number (list index) into the input field . Hit 'Enter'.
+| OR
+| Write or copy/paste the radio name into the input field. Hit 'Enter'.
+| Add as many radios as you like.
+| Hit 'Enter' without input to start grabbing.
+| Listen to the first selected radio via local streaming ``http://localhost:1242/``
+
+Change parent record path Menu
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+::
+
+    option 'Change record parent path'
+    1 -- New parent path for recorded radios. Write to config.
+    2 -- Back to Main Menu
+    Enter your choice: 1
+
+        Write a new path to store files
+    ..settings.ini [GLOBAL] section: {'blacklist_enable': 'True', 'save_to_dir': 'f:\\31'}
+    Enter a new path, OS syntax (f:\10 or /home ) -->:
+
+The default path is the directory of the module.
+In most cases you want to store grabbed files somewhere else.
+
+Blacklist Menu
+^^^^^^^^^^^^^^
+::
+
+    Write a new blacklist option to settings.ini file
+    ..settings.ini [GLOBAL] section: {'blacklist_enable': 'True', 'save_to_dir': 'f:\\31'}
+    1 -- blacklist on (don't write title if already downloaded)
+    2 -- blacklist off
+    3 -- Back to Main Menu
+    Enter your choice: 1
+
+    	blacklist is ON: settings.ini file
+    	Existing titles are not recorded again and again.
+    file name is "blacklist.json" in the same folder as "settings.ini"
+    ..settings.ini [GLOBAL] section: {'blacklist_enable': 'True', 'save_to_dir': 'f:\\31'}
+    Hit Enter to leave -->:
+
+| Blacklist writing can be switched on/off.
+| Tiles are listed for each of the radios and can be deleted to 'unlist' them.
+| File name is ``blacklist.json`` and always in the same folder as 'settings.ini'.
+
+
+Set path to config
+^^^^^^^^^^^^^^^^^^
+::
+
+    Write Path to settings.ini and blacklist.json file
+    Enter a new path, OS syntax (f:\10 or /home ) -->: F:\44
+    	created: F:\44
+    ..settings.ini [GLOBAL] section: {'blacklist_enable': 'True'}
+    Hit Enter to leave -->:
+
+| You can store your config file 'settings.ini' somewhere on the file system.
+| Default place for grabbed files is the mentioned folder.
+| If a custom save path is written to config, this path is used.
+
+
+aac file repair
+^^^^^^^^^^^^^^^
+::
+
+    Write a path to aac files. Only aac files will be touched.
+    ..settings.ini [GLOBAL] section: {'blacklist_enable': 'True', 'save_to_dir': 'f:\\31'}
+    Enter a path, OS syntax (f:\10 or /home ) -->:f:\6aac
+    	created: f:\6aac
+    	f:\6aac\aac_repair created
+    [ COPY(s) in f:\6aap\aac_repair ]
+    ----- 1 file(s) failed -----
+    f:\6aac\Sergey Sirotin & Golden Light Orchestra - Around The World.aacp
+    ValueError non-hexadecimal number found in fromhex() arg at position 5438113
+    ----- 97 file(s) repaired -----
+    f:\6aac\111_Slovo_Original_Mix.aac; cut(bytes): [330]
+    f:\6aac\351 Lake Shore Drive - You Make My Day.aacp; cut(bytes): [389]
+
+| The repair option uses a folder name as input.
+| Repaired files are stored in 'aac_repair' sub folder.
+| Cut bytes count is shown at the end of the line.
+| Repair can fail if the file is corrupted not only at start or end.
+
+
+Pip Install
+^^^^^^^^^^^
+::
 
    """ xxs Linux xxs """
-   $ pip3 install aacrepair
+   $ pip3 install ghettorecorder
 
    """ xxm Windows xxm """
-   > pip install aacrepair
+   > pip install ghettorecorder
 
 
 Uninstall
----
+^^^^^^^^^
 
 Python user
 
@@ -64,7 +160,7 @@ Python user
 
 remove::
 
-   >$ pip3 show aacrepair
-   >$ pip3 uninstall aacrepair
+   >$ pip3 show ghettorecorder
+   >$ pip3 uninstall ghettorecorder
 
 Location: ... /python310/site-packages
