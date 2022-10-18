@@ -1,0 +1,19 @@
+include LICENSE.rst
+include MANIFEST.in
+include README.rst
+include ghettorecorder/api.py
+include ghettorecorder/cmd.py
+include ghettorecorder/ghetto_blacklist.py
+include ghettorecorder/ghetto_container.py
+include ghettorecorder/ghetto_http_srv.py
+include ghettorecorder/ghetto_ini.py
+include ghettorecorder/ghetto_menu.py
+include ghettorecorder/ghetto_meta.py
+include ghettorecorder/ghetto_net.py
+include ghettorecorder/ghetto_recorder.ascii
+include ghettorecorder/ghetto_recorder.py
+include ghettorecorder/__init__.py
+include ghettorecorder/settings.ini
+prune venv
+recursive-include docs *
+prune docs/build
