@@ -1,71 +1,13 @@
 # Configuration file for the Sphinx documentation builder.
-
+# https://shunsvineyard.info/2019/09/19/use-sphinx-for-python-documentation/
+import os
 import sys
-from os import path
-
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-#
-# we choose Google Style Docstring Sections (see 20 lines below)
-#
-# def func(arg1, arg2):
-#     """Summary line.
-# 
-#     Extended description of function.
-# 
-#     Args:
-#         arg1 (int): Description of arg1
-#         arg2 (str): Description of arg2
-# 
-#     Returns:
-#         bool: Description of return value
-# 
-#     """
-#     return True
-
-# pip install sphinx-rtd-theme
-# pip install sphinxcontrib-napoleon
-# Use sphinx-apidoc to build your API documentation:
-# $ sphinx-apidoc -f -o docs/source   /projectdir   (use full paths for both, __init__.py in the project folders)
-# make html
-
-# Docstring Sections¶
-# All of the following section headers are supported:
-# Args (alias of Parameters)
-# Arguments (alias of Parameters)
-# Attention
-# Attributes
-# Caution
-# Danger
-# Error
-# Example
-# Examples
-# Hint
-# Important
-# Keyword Args (alias of Keyword Arguments)
-# Keyword Arguments
-# Methods
-# Note
-# Notes
-# Other Parameters
-# Parameters
-# Return (alias of Returns)
-# Returns
-# Raise (alias of Raises)
-# Raises
-# References
-# See Also
-# Tip
-# Todo
-# Warning
-# Warnings (alias of Warning)
-# Warn (alias of Warns)
-# Warns
-# Yield (alias of Yields)
-# Yields
+sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+# sphinx-apidoc -f -o source/ ../ghettorecorder/
+# make html
 
 project = 'GhettoRecorder'
 copyright = '2022, René Horn'
