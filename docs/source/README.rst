@@ -4,9 +4,9 @@ command line internet radio grabber with listen capabilities
 
 Info
 ----
-| GhettoRecorder is a Python package.
-| Once installed it can be copied elsewhere and run from its folder structure.
-| GhettoRecorder can be executed from commandline ``$ ghettorecorder``.
+| GhettoRecorder can be copied elsewhere and run from its folder structure.
+| It can be deployed as a Python package by using the config files.
+| GhettoRecorder package can be called on commandline ``$ ghettorecorder`` directly.
 
 | Multiple menu options are available:
 |   * Custom save path (written to config)
