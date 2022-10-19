@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GhettoRecorder"
-version = "2.4"
+version = "2.4.1"
 description = "command line internet radio grabber with listen capabilities"
 keywords = ['audio', 'aac repair',]
 license = {file = "LICENSE.rst"}
