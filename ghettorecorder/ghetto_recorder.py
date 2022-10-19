@@ -71,7 +71,7 @@ context_ssl = ssl.create_default_context(cafile=certifi.where())   # works in An
 this_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.abspath(this_dir))
 
-version = '0.8'
+version = '2.4'
 print(f'ghettorecorder {version} (an Eisenradio module)')
 
 
