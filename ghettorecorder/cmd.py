@@ -2,18 +2,12 @@
 imports ghetto_recorder and calls ghetto_recorder.terminal_main()
 entry point in pyproject.toml
 """
-import sys
-from os import path
-import ghettorecorder.ghetto_recorder as ghetto_recorder
-
-this_dir = path.abspath(path.join(path.dirname(__file__)))
-sys.path.append(this_dir)
-print(this_dir)
+from ghettorecorder.ghetto_recorder import terminal_main
 
 
 def main():
-    # command line version; write:python ghetto_recorder.py
-    ghetto_recorder.terminal_main()
+    # command line version calls module as main, not as library
+    terminal_main()
     pass
 
 
