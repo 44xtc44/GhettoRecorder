@@ -97,7 +97,7 @@ Blacklist Menu
     Hit Enter to leave -->:
 
 | Blacklist writing can be switched on/off.
-| Tiles are listed for each of the radios and can be deleted to 'unlist' them.
+| Titles are listed for each of the radios and can be deleted to 'unlist' them.
 | File name is ``blacklist.json`` and always in the same folder as 'settings.ini'.
 
 
