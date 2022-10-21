@@ -691,10 +691,10 @@ class GRecorder:
             for sec in range(2):
                 if str_action == "listen":
                     if GBase.dict_exit[str_radio] or not GRecorder.listen_active_dict[str_radio]:
-                        break
+                        return
                 if str_action == "record":
                     if GBase.dict_exit[str_radio] or not GRecorder.record_active_dict[str_radio]:
-                        break
+                        return
                 sleep(1)
 
     @staticmethod
