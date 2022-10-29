@@ -525,7 +525,14 @@ class GRecorder:
                         msg = f"{str_radio} g_recorder_rec() {error}"
                         print(msg)
                     # fill current file, write chunk to it
-                    record_file.write(new_chunk)
+                    try:
+                        record_file.write(new_chunk)
+                    except TypeError as remote_host_closed_con:
+                        msg = f"error: {remote_host_closed_con} - retry"
+                        print(msg)
+                        sleep(5)
+                        GRecorder.g_recorder_request(request.url)
+
                     # if we are owner of the http server
                     if GBase.terminal_http_server_thread_name == str_radio:
                         # chunk to http server, if buffer full remove one segment and put new, else server can stop
