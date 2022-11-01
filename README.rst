@@ -4,16 +4,20 @@ command line internet radio grabber with listen capabilities
 
 Info
 ----
-| GhettoRecorder can be copied elsewhere and run from its folder structure.
-| It can be deployed as a Python package by using the config files.
-| GhettoRecorder package can be called on commandline ``$ ghettorecorder`` directly.
-
+| It must be deployed as a Python package.
+| The package can be called on commandline ``$ ghettorecorder`` directly.
+| GhettoRecorder folder can be copied elsewhere, run ghetto_recorder.py from there.
+|
 | Multiple menu options are available:
 |   * Custom save path (written to config)
 |   * Title blacklist  (written to config)
 |   * Store config file elsewhere
 |   * Repair of aac files https://aacrepair.readthedocs.io/
 
+
+* Snap: https://snapcraft.io/ghettorecorder
+* GitHub: https://github.com/44xtc44/GhettoRecorder
+* ReadTheDocs: https://ghettorecorder.readthedocs.io/
 
 Configuration File
 ------------------
@@ -143,10 +147,10 @@ Pip Install
 ^^^^^^^^^^^
 ::
 
-   """ xxs Linux xxs """
+   """ Linux """
    $ pip3 install ghettorecorder
 
-   """ xxm Windows xxm """
+   """ Windows """
    > pip install ghettorecorder
 
 
