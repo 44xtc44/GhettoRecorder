@@ -5,6 +5,8 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
+# pip install -U sphinx
+# !!! indentation of sphinx is mostly 3 leading spaces, code 4, block need one free line above and colon for head
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 # sphinx-apidoc -f -o source/ ../ghettorecorder/
 # make html
