@@ -14,10 +14,11 @@ Info
 |   * Store config file elsewhere
 |   * Repair of aac files https://aacrepair.readthedocs.io/
 
-
+Links
+^^^^^
 * Snap: https://snapcraft.io/ghettorecorder
 * GitHub: https://github.com/44xtc44/GhettoRecorder
-* ReadTheDocs: https://ghettorecorder.readthedocs.io/
+* ReadTheDocs: https://ghettorecorder.readthedocs.io/ (module index)
 
 Configuration File
 ------------------
