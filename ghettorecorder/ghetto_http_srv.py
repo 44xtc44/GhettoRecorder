@@ -4,10 +4,11 @@ import http.server
 
 class TerminalRequestHandler(http.server.SimpleHTTPRequestHandler):
     """ tiny http server for command line, local data feed, run on localhost network
+
     showcase target:
-        send any stream to a localhost port, buffer copy, content_type must be set, could be video (raw stream of jpeg)
-        only one instance per port
-        queue too small leads to short stops, too big to connection delay (time to fill the buffer, queue)
+       send any stream to a localhost port, buffer copy, content_type must be set, could be video (raw stream of jpeg)
+       only one instance per port
+       queue too small leads to short stops, too big to connection delay (time to fill the buffer, queue)
     """
     fifo_http_chunk_queue = queue.Queue(maxsize=7)
     content_type = "audio/mpeg"  # instance, will overwrite

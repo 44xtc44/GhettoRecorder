@@ -1,37 +1,35 @@
 """ GhettoRecorder command line menu display,
-        1: 'record',
-        2: 'Change parent record path',
-        3: 'Enable/disable blacklists',
-settings.ini:
-[GLOBAL]
-SAVE_TO_DIR = f:\2
-BLACKLIST_ENABLE = true
-[STATIONS]
-classic = http://37.251.146.169:8000/streamHD
 
-Methods:
-    menu_main()      - main menu
-    menu_path()      - store custom path in config, default is recorder parent dir in config file folder
-    menu_blacklist() - enable blacklist feature, store in config and create json dict file if not exists
-    record()         - init all dicts in ghetto_ini.GIni, show the list of radios to choose from
-    record_read_radios() - input prompt, get radio name or the choice (index) number of a radio list, create folder
-    record_validate_input(radio_name) - True if choice in list, True if index of list is valid, False if not valid
-    record_validate_radio_name(radio_name) - change the index number back to radio name, if index was the choice
-    record_create_radio_url_dict(radio_name) - need radio name as thread and folder name, url to connect to network
-    record_create_folder_radio_name(radio_name) - create parent folder and radio child folder
-    terminal_record_parent_dir_get()  - return GIni.radio_base_dir, parent folder
-    terminal_record_custom_path_get() - called by ghetto_recorder module, config is called at radio choice in main menu
-    terminal_record_blacklist_enabled_get() - called by ghetto_recorder module, enable api variable
-    terminal_record_settings_dir_get() - called by ghetto_recorder module to write blacklist beside settings.ini
-    terminal_record_all_radios_get() - called by ghetto_recorder module to write blacklist beside settings.ini
-    path_change() - call menu_path(), Change record parent path
-    parent_record_path_change() - store path in [GLOBAL], test if path is writeable, init GIni.global_config_get()
-    path_validate_input(custom_path) - return True if path is valid
-    blacklist()                      - Enable/disable blacklists
-    blacklist_is_enabled()           - Write a new blacklist option to settings.ini file
-    blacklist_on()                   - write enabled to config file
-    blacklist_off()                  - write disabled to config file
-    remove_special_chars(str_name)   - clean radio name to create a folder
+settings.ini
+   [GLOBAL]
+   SAVE_TO_DIR = f:\2
+   BLACKLIST_ENABLE = true
+   [STATIONS]
+   classic = http://37.251.146.169:8000/streamHD
+
+Methods
+   menu_main()      - main menu
+   menu_path()      - store custom path in config, default is recorder parent dir in config file folder
+   menu_blacklist() - enable blacklist feature, store in config and create json dict file if not exists
+   record()         - init all dicts in ghetto_ini.GIni, show the list of radios to choose from
+   record_read_radios() - input prompt, get radio name or the choice (index) number of a radio list, create folder
+   record_validate_input(radio_name) - True if choice in list, True if index of list is valid, False if not valid
+   record_validate_radio_name(radio_name) - change the index number back to radio name, if index was the choice
+   record_create_radio_url_dict(radio_name) - need radio name as thread and folder name, url to connect to network
+   record_create_folder_radio_name(radio_name) - create parent folder and radio child folder
+   terminal_record_parent_dir_get()  - return GIni.radio_base_dir, parent folder
+   terminal_record_custom_path_get() - called by ghetto_recorder module, config is called at radio choice in main menu
+   terminal_record_blacklist_enabled_get() - called by ghetto_recorder module, enable api variable
+   terminal_record_settings_dir_get() - called by ghetto_recorder module to write blacklist beside settings.ini
+   terminal_record_all_radios_get() - called by ghetto_recorder module to write blacklist beside settings.ini
+   path_change() - call menu_path(), Change record parent path
+   parent_record_path_change() - store path in [GLOBAL], test if path is writeable, init GIni.global_config_get()
+   path_validate_input(custom_path) - return True if path is valid
+   blacklist()                      - Enable/disable blacklists
+   blacklist_is_enabled()           - Write a new blacklist option to settings.ini file
+   blacklist_on()                   - write enabled to config file
+   blacklist_off()                  - write disabled to config file
+   remove_special_chars(str_name)   - clean radio name to create a folder
 """
 import os
 from aacrepair import AacRepair
@@ -161,10 +159,11 @@ def menu_find_config():
 
 def record():
     """ init all dicts in ghetto_ini.GIni, show the list of radios to choose from
+
     Functions
-        GIni.record_path_test()    - test if configparser can read config file
-        GIni.global_config_get(print_config=True) - fill path vars,
-        GIni.show_items_ini_file() - show the main menu headline and description
+       GIni.record_path_test()    - test if configparser can read config file
+       GIni.global_config_get(print_config=True) - fill path vars,
+       GIni.show_items_ini_file() - show the main menu headline and description
     """
     print('\toption \'record\'')
     if record_path_get():
@@ -180,21 +179,22 @@ def record_path_get():
 
 def record_read_radios():
     """ return validated 'radio_url_dict' to ghetto_recorder module
-    input on main menu:
-        the list index number of a radio (prefix, [6 >> time_machine <<])
-        name on the list in main menu
 
-    target:
-        write radio_url_dict[radioName] = URL
-        recognize list index numbers to transform number into radio name
+    input on main menu
+       the list index number of a radio (prefix, [6 >> time_machine <<])
+       name on the list in main menu
 
-    Methods:
-        record_validate_radio_name() - validate radio name or transform choice (index) number of a radio to name,
-        record_create_radio_url_dict(valid_name) - return (name, url) tuple
-        record_create_folder_radio_name(radio_dir_name) - create folder for validated radio
+    target
+       write radio_url_dict[radioName] = URL
+       recognize list index numbers to transform number into radio name
 
-    return:
-        'radio_url_dict'
+    Methods
+       record_validate_radio_name() - validate radio name or transform choice (index) number of a radio to name,
+       record_create_radio_url_dict(valid_name) - return (name, url) tuple
+       record_create_folder_radio_name(radio_dir_name) - create folder for validated radio
+
+    return
+       'radio_url_dict'
     """
     radio_list = []  # fill a list, just to see if we get valid input
     radio_url_dict = {}  # return value of the function
@@ -321,9 +321,12 @@ def path_change():
 
 def parent_record_path_change():
     """ populate variables in GIni
-     show old path, if any, write new one to GLOBAL section, create GLOBAL, if not exists
-     test if path is writeable
-     show new path, GIni.global_config_get
+
+     show old path
+        if any, write new one to GLOBAL section, create GLOBAL, if not exists
+        test if path is writeable
+        show new path, GIni.global_config_get
+
      Exception
         we crash, if config file is not in path, writing will fail
      """
@@ -355,9 +358,11 @@ def parent_record_path_change():
 
 def config_path_change():
     """ change the path to settings.ini and blacklist.json
-     show old path, if any, write new one to GLOBAL section, create GLOBAL, if not exists
-     test if path is writeable
-     show new path, GIni.global_config_get()
+
+     show old path
+        if any, write new one to GLOBAL section, create GLOBAL, if not exists
+        test if path is writeable
+        show new path, GIni.global_config_get()
      """
     print('\n\tWrite Path to settings.ini and blacklist.json file')
     GIni.global_config_get()

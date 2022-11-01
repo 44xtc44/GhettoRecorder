@@ -9,16 +9,17 @@ context_ssl = ssl.create_default_context(cafile=certifi.where())
 
 class GNet:
     """ network test, content_type check
-    Dictionaries:
-        dict_error = {}  : display connection errors
-        ghettoApi.init_ghetto_dict_error(dict_error)  : transfer information to api
-        content_type_dict = {}  : a thread that holds the http server instance informs that server about file type
-        bit_rate_dict = {} : bitrate from header, show that rate on startup for each radio beside the URL
 
-    Methods:
-        is_server_alive(url, str_radio) - filter out not responding server by calling 'load_url(url)'
-        load_url(url)                   - returns status 200 if alive and ok
-        stream_filetype_url(url, str_radio) - content-type for server is mapped to file suffix
+    Dictionaries
+        ict_error = {}  : display connection errors
+        hettoApi.init_ghetto_dict_error(dict_error)  : transfer information to api
+        ontent_type_dict = {}  : a thread that holds the http server instance informs that server about file type
+        it_rate_dict = {} : bitrate from header, show that rate on startup for each radio beside the URL
+
+    Methods
+       is_server_alive(url, str_radio) - filter out not responding server by calling 'load_url(url)'
+       load_url(url)                   - returns status 200 if alive and ok
+       stream_filetype_url(url, str_radio) - content-type for server is mapped to file suffix
     """
     dict_error = {}  # display connection errors in terminal and html
     ghettoApi.init_ghetto_dict_error(dict_error)  # transfer information to api (avoid circular imports) for html
@@ -28,7 +29,10 @@ class GNet:
     @staticmethod
     def is_server_alive(url, str_radio):
         """ return True if server alive
-        don't delete - urllib3 timeout=5, placebo, we have server up, but content not presented - zombie
+
+        don't delete
+           urllib3 timeout=5, placebo, we have server up, but content not presented - zombie
+
         now use for all connections urllib
         """
         try:
@@ -58,8 +62,12 @@ class GNet:
     @staticmethod
     def stream_filetype_url(url, str_radio):
         """ return file suffix of the stream mapped from content-type
-        GNet.content_type_dict[str_radio] stores the content-type, thread informs local http server which stream
         not called if the server failed before
+
+        Dictionary
+           GNet.content_type_dict[str_radio]
+           stores the content-type,
+           thread informs local http server which stream type
         """
         try:
             with urllib.request.urlopen(url, timeout=15, context=context_ssl) as response:
@@ -86,7 +94,7 @@ class GNet:
 
     @staticmethod
     def bit_rate_url(url, str_radio):
-        """
+        """ try to get bitrate to adapt buffer size for queue
         """
         try:
             with urllib.request.urlopen(url, timeout=15, context=context_ssl) as response:

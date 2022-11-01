@@ -8,24 +8,25 @@ from pathlib import Path as Pathlib_path
 
 class GIni:
     """ config file for command line 'settings.ini'
-
     choice of radios can be made via list index number or name of the radio
-    Dictionaries:
-        radio_names_list = []  : list to search radio name via character
-        radio_base_dir                : recorder parent dir
-        settings_path                 : full path name of config file
-        settings_dir                  : dir path of config file
-        config_stations = {}          : radio, url pairs from [STATIONS] section
-        config_global = {}            : extra infos from [GLOBAL] section, SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
-        global_custom_path = ""       : custom parent directory for records elsewhere
-        global_custom_blacklist = ""  : blacklist feature on/off
 
-    Methods:
-        show_items_ini_file() - show the content of the ini file to choose from, fill radio_names_list,radio_names_dict
-        record_path_test()    - look if we can read the config file
-        global_config_get(print_config=False) - extract GLOBAL section from settings.ini
-        global_record_path_write(custom_path) - SAVE_TO_DIR = f:/2
-        global_blacklist_enable_write(option) - BLACKLIST_ENABLE = True
+    Dictionaries
+       radio_names_list = []  . list to search radio name via character
+       radio_base_dir                . recorder parent dir
+       settings_path                 . full path name of config file
+       settings_dir                  . dir path of config file
+       config_stations = {}          . radio, url pairs from [STATIONS] section
+       config_global = {}            . extra infos from [GLOBAL] section, SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
+       global_custom_path = ""       . custom parent directory for records elsewhere
+       global_custom_blacklist = ""  . blacklist feature on/off
+
+    Methods
+       show_items_ini_file() . show the content of the ini file to choose from, fill radio_names_list,radio_names_dict
+       record_path_test()    . look if we can read the config file
+       global_config_get(print_config=False) . extract GLOBAL section from settings.ini
+       global_record_path_write(custom_path) . SAVE_TO_DIR = f:/2
+       global_blacklist_enable_write(option) . BLACKLIST_ENABLE = True
+
      """
 
     radio_names_list = []       # search radio name via character
@@ -84,10 +85,12 @@ class GIni:
     def global_config_get(print_config=False):
         """ extract GLOBAL section from settings.ini, if available
         GLOBAL can be - not there, empty, or with values (test case)
+
         Method
-            GIni.record_path_test() - exit if no path
+           GIni.record_path_test() - exit if no path
+
         Raise
-            show that there is no config, but can proceed without (GIni.record_path_test(), ok)
+           show that there is no config, but can proceed without (GIni.record_path_test(), ok)
         """
         config = GIni.record_path_test()
         if config:
@@ -142,10 +145,11 @@ class GIni:
 
     @staticmethod
     def config_path_write(custom_path):
-        """ find settings.ini and blacklist.json
-        write the path variables
-        used, if config file is not in the same folder as the main module (ghetto_recorder)
-        Menu, 'Set path to config, settings.ini'
+        """ find settings.ini and blacklist.json, write path variables to screen.
+        Used, if config file is not in the same folder as the main module (ghetto_recorder).
+
+        Menu
+           'Set path to config, settings.ini'
         """
         path = str(Pathlib_path(custom_path))
         GIni.settings_path = os.path.join(path, "settings.ini")

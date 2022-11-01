@@ -1,40 +1,43 @@
-# 0.1.2a
-##################################################################################
-#   MIT License
-#
-#   Copyright (c) [2021] [René Horn]
-#
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
-#
-#   The above copyright notice and this permission notice shall be included in all
-#   copies or substantial portions of the Software.
-#
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#   SOFTWARE.
-###################################################################################
 """
+MIT License
+
+Copyright (c) [2021] [René Horn]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+"""
+
 connections:
-url is tested before the "real" connection to write error messages to a dict and html frontend
-  content type, bitrate and playlist (some url may deliver only a playlist with real urls)
-for every connection (rec or listen) is a second connection opened to ask every few seconds for metadata, aka title
-asking for metadata in one stream leads to blocks of metadata in the datastream; digital noise and audio jumps
-if a listen connection is opened and recording is activated a second connection is opened
-this is four connections in sum for the radio, two streams, two metadata
+   rl is tested before the "real" connection to write error messages to a dict and html frontend
+   ontent type, bitrate and playlist (some url may deliver only a playlist with real urls)
+   or every connection (rec or listen) is a second connection opened to ask every few seconds for metadata, aka title
+   sking for metadata in one stream leads to blocks of metadata in the datastream; digital noise and audio jumps
+   f a listen connection is opened and recording is activated a second connection is opened
+   his is four connections in sum for the radio, two streams, two metadata
+   
 buttons:
-button status is written to dicts in Python,
+   button status is written to dicts in Python,
+
 url requests:
-use urllib with certify and ssl imports plus ssl.create_default_context(cafile=certifi.where())
-to avoid ssl errors on android and mac
+   use urllib with certify and ssl imports plus ssl.create_default_context(cafile=certifi.where())
+   to avoid ssl errors on android and mac
 """
 import io
 import os
@@ -77,21 +80,21 @@ print(f'ghettorecorder {version} (an Eisenradio module)')
 
 class GBase:
     """base class attributes and utils methods,
-    prefix terminal_ is exclusively used for command line version (running ghetto_recorder.py)
+    prefix 'terminal_' is exclusively used for command line version (running ghetto_recorder.py)
+
     Attributes
-        terminal_radio_list = []  # all radios in settings.ini
-        terminal_blacklist_name = "blacklist.json" - name blacklist
-        terminal_http_server_avail_flag = True  - one thread may create the http server instance than switch off, False
-        terminal_http_server_thread_name = ""    - name of the thread that owns the terminal_http_server_avail_flag
-        terminal_run = False  - thread can look if we run in a terminal window, set in "terminal_main()"
-        dict_exit = {}  - radio listen, record, metadata threads stop, html timer can also call {goa: true,...}
-        radio_base_dir = ""  - html, eishome.set_radio_path(); terminal version set in ghetto_ini.py (circular import)
+       terminal_radio_list = []  # all radios in settings.ini
+       terminal_blacklist_name = "blacklist.json" - name blacklist
+       terminal_http_server_avail_flag = True  - one thread may create the http server instance than switch off, False
+       terminal_http_server_thread_name = ""    - name of the thread that owns the terminal_http_server_avail_flag
+       terminal_run = False  - thread can look if we run in a terminal window, set in "terminal_main()"
+       dict_exit = {}  - radio listen, record, metadata threads stop, html timer can also call {goa: true,...}
+       radio_base_dir = ""  - html, eishome.set_radio_path(); terminal version set in ghetto_ini.py (circular import)
 
     Methods
-        make_directory(path)            - make parent and subdirectories at once
-        remove_special_chars(str_name)  - remove special characters for writing to file system
-        this_time()                     - mark a recorded title if no metadata are available
-
+       make_directory(path)            - make parent and subdirectories at once
+       remove_special_chars(str_name)  - remove special characters for writing to file system
+       this_time()                     - mark a recorded title if no metadata are available
     """
     # class attribute
     terminal_radio_list = []  # all radios in settings.ini "ghetto_menu.terminal_record_all_radios_get()"
@@ -115,7 +118,7 @@ class GBase:
         """ make parent and subdirectories at once
 
         Exception
-            make write error public
+           make write error public
         """
         try:
             os.makedirs(path, exist_ok=True)
@@ -138,66 +141,63 @@ class GBase:
 
 class GRecorder:
     """ recorder
-    Dictionaries:
-        current_song_dict = {}  - each thread writes the new title to the station key name {station : title}
-        ghettoApi.init_current_song_dict(current_song_dict)
-        path_record_dict = {}    - {radio : //home//box/Download//hr3//Mittelstandskinder ohne Strom - kalt [Rmx]}
-        start_write_command = {} - recorder head thread set command to start recording
-        record_active_dict = {}  - button press true/false record / command line version writes also here
-        listen_active_dict = {}  - button press true/false listen
-        ghettoApi.init_ghetto_listen_active_dict(listen_active_dict) - transfer dict to api
-        audio_stream_queue_dict = {} - chunks of data written to a radio key as value {radioB2: queue.Queue}
-        # each radio has {key:val}; means {goa _audio: queue.Queue(maxsize=5), goa _audio_2: queue.Queue(maxsize=5)}
-        # for later use if multiple streams from same radio server are loaded, needs interaction with naming the files
-        ghettoApi.init_ghetto_audio_stream(audio_stream_queue_dict)
-        recorder_new_title_dict = {}  - recorder splits path to get the clean title to compare with blacklist
-        ghettoApi.init_ghetto_recorder_new_title(recorder_new_title_dict)
-        skipped_in_session_dict = {}  - blacklist feature for html, shows skipped titles during recording session
-        ghettoApi.init_ghetto_skipped_in_session_dict(skipped_in_session_dict)
 
+    Dictionaries:
+       current_song_dict = {}  - each thread writes the new title to the station key name {station : title}
+       ghettoApi.init_current_song_dict(current_song_dict)
+       path_record_dict = {}    - {radio : //home//box/Download//hr3//Mittelstandskinder ohne Strom - kalt [Rmx]}
+       start_write_command = {} - recorder head thread set command to start recording
+       record_active_dict = {}  - button press true/false record / command line version writes also here
+       listen_active_dict = {}  - button press true/false listen
+       ghettoApi.init_ghetto_listen_active_dict(listen_active_dict) - transfer dict to api
+       audio_stream_queue_dict = {} - chunks of data written to a radio key as value {radioB2: queue.Queue}
+       # each radio has {key:val}; means {goa _audio: queue.Queue(maxsize=5), goa _audio_2: queue.Queue(maxsize=5)}
+       # for later use if multiple streams from same radio server are loaded, needs interaction with naming the files
+       ghettoApi.init_ghetto_audio_stream(audio_stream_queue_dict)
+       recorder_new_title_dict = {}  - recorder splits path to get the clean title to compare with blacklist
+       ghettoApi.init_ghetto_recorder_new_title(recorder_new_title_dict)
+       skipped_in_session_dict = {}  - blacklist feature for html, shows skipped titles during recording session
+       ghettoApi.init_ghetto_skipped_in_session_dict(skipped_in_session_dict)
 
     Methods:
-        move to external module? = m;
-        g_recorder_head(...) - thread loop, clean metadata from problematic chars, create file name and path for "tail"
-        g_recorder_await_head(str_radio)         - g_recorder_tail() must wait to get first path/file name
-        g_recorder_path_transfer_test(str_radio) - return if no valid path can be presented by 'g_recorder_await_head()'
-        g_recorder_cache_the_file(str_radio, full_file_path, record_file, ghetto_recorder, stream_request_size):
-        g_recorder_reset_file_offset(record_file) - seek(0) and truncate recorder file to start new record
-        g_recorder_copy_file(full_file_path, ghetto_recorder, stream_request_size) - copy new recorded file
-        g_recorder_remove_file(full_file_path, record_file) - del old if new file must be copied, no blacklist active
-        g_recorder_record_trace(str_radio, full_file_path) - extract title from path, add to recorder_new_title_dict
-        g_recorder_teardown(...) - close the recorder file and reset it to not abandon 100mb
-        g_recorder_empty_queue(str_radio) - drain Html audio element, it will switch faster
-        g_recorder_write_queue(str_radio, chunk) - listen endpoint queue, empty the Queue if full and write new
-      m g_recorder_ask_bit_rate(url) - return bitrate from header
-      m urllib.request.urlopen(url, timeout=15, context=context_ssl) - only for requesting the bitrate
-      m g_recorder_calc_chunk_size(url) - return bitrate from header info of radio to adapt buffer size
-        http_srv_object_create(str_radio) - return instance of 'TerminalRequestHandler', create a mini http server
-        g_recorder_rec(...) - recorder loop return nothing
-        record_write_first(chunk, record_file, suffix) - return first cleaned aac chunk after a title change
-        record_write_last(chunk, record_file, suffix) - have to fix aac file end (clean cut) so title not stuck
-      m record_acp_fff1_sync_word_tail(chunk) - aac repair clean cut at the end
-      m record_acp_fff1_sync_word_header(chunk) - aac repair
-      m g_recorder_request(url) - return the request object of the url, or False
-        g_recorder_tail(...) - thread, dispatch record and listen action
-        metadata_main(url, str_radio, str_action, str_type) - main function for metadata, title extract
-      m playlist_m3u(str_radio, str_url) - return the first server of the playlist
-        record_start_radio(...) - start threads for one radio daemon style, assign names for debugging
-        record(str_radio, url, str_action) - return nothing, prepare environment for start of radio threads and start
-        terminal_feed_record(radio_dict) - return nothing, start recording all radios that passed the online test
-        resolve_playlist(str_radio, str_url) - return first url from a playlist 'GRecorder.playlist_m3u(str_radio, ...)'
-        is_radio_online(str_radio, str_url) - return url if asked url was a play list, returns False if normal server
-        terminal_main_thread_loop() - loop keeps main thread alive, killed via 'signal_handler()' strg+c
-        terminal_custom_record_path_get() - return parent record dir if custom path is set, take it, else default
-        terminal_test_record_server(str_radio, str_url) - return radio url, return nothing if offline
-        terminal_remove_offline_radios(radio_terminal_dict) - delete offline radios from dict of desired radios
-        terminal_write_blacklist(bl_path, bl_name) - write blacklist if not exists, else update it with new radio names
-        terminal_populate_new_blacklist(path) - return True if first time populate the blacklist with empty lists
-        terminal_update_blacklist(path) - return True if update existing blacklist json, read, load in dict
-        terminal_blacklist_enable(blacklist_name) - prepare env for blacklist writer module to start and work easily
-      m signal_handler(sig, frame) - Terminal: catch Keyboard Interrupt ctrl + c, "signal.signal()" instances listen
-
-    need to make more use of ghettoApi to get this guy smaller and more readable; perhaps split api
+       g_recorder_head(...) - thread loop, clean metadata from problematic chars, create file name and path for "tail"
+       g_recorder_await_head(str_radio)         - g_recorder_tail() must wait to get first path/file name
+       g_recorder_path_transfer_test(str_radio) - return if no valid path can be presented by 'g_recorder_await_head()'
+       g_recorder_cache_the_file(str_radio, full_file_path, record_file, ghetto_recorder, stream_request_size):
+       g_recorder_reset_file_offset(record_file) - seek(0) and truncate recorder file to start new record
+       g_recorder_copy_file(full_file_path, ghetto_recorder, stream_request_size) - copy new recorded file
+       g_recorder_remove_file(full_file_path, record_file) - del old if new file must be copied, no blacklist active
+       g_recorder_record_trace(str_radio, full_file_path) - extract title from path, add to recorder_new_title_dict
+       g_recorder_teardown(...) - close the recorder file and reset it to not abandon 100mb
+       g_recorder_empty_queue(str_radio) - drain Html audio element, it will switch faster
+       g_recorder_write_queue(str_radio, chunk) - listen endpoint queue, empty the Queue if full and write new
+       g_recorder_ask_bit_rate(url) - return bitrate from header
+       urllib.request.urlopen(url, timeout=15, context=context_ssl) - only for requesting the bitrate
+       g_recorder_calc_chunk_size(url) - return bitrate from header info of radio to adapt buffer size
+       http_srv_object_create(str_radio) - return instance of 'TerminalRequestHandler', create a mini http server
+       g_recorder_rec(...) - recorder loop return nothing
+       record_write_first(chunk, record_file, suffix) - return first cleaned aac chunk after a title change
+       record_write_last(chunk, record_file, suffix) - have to fix aac file end (clean cut) so title not stuck
+       record_acp_fff1_sync_word_tail(chunk) - aac repair clean cut at the end
+       record_acp_fff1_sync_word_header(chunk) - aac repair
+       g_recorder_request(url) - return the request object of the url, or False
+       g_recorder_tail(...) - thread, dispatch record and listen action
+       metadata_main(url, str_radio, str_action, str_type) - main function for metadata, title extract
+       playlist_m3u(str_radio, str_url) - return the first server of the playlist
+       record_start_radio(...) - start threads for one radio daemon style, assign names for debugging
+       record(str_radio, url, str_action) - return nothing, prepare environment for start of radio threads and start
+       terminal_feed_record(radio_dict) - return nothing, start recording all radios that passed the online test
+       resolve_playlist(str_radio, str_url) - return first url from a playlist 'GRecorder.playlist_m3u(str_radio, ...)'
+       is_radio_online(str_radio, str_url) - return url if asked url was a play list, returns False if normal server
+       terminal_main_thread_loop() - loop keeps main thread alive, killed via 'signal_handler()' strg+c
+       terminal_custom_record_path_get() - return parent record dir if custom path is set, take it, else default
+       terminal_test_record_server(str_radio, str_url) - return radio url, return nothing if offline
+       terminal_remove_offline_radios(radio_terminal_dict) - delete offline radios from dict of desired radios
+       terminal_write_blacklist(bl_path, bl_name) - write blacklist if not exists, else update it with new radio names
+       terminal_populate_new_blacklist(path) - return True if first time populate the blacklist with empty lists
+       terminal_update_blacklist(path) - return True if update existing blacklist json, read, load in dict
+       terminal_blacklist_enable(blacklist_name) - prepare env for blacklist writer module to start and work easily
+       signal_handler(sig, frame) - Terminal: catch Keyboard Interrupt ctrl + c, "signal.signal()" instances listen
     """
     current_song_dict = {}  # each thread writes the new title to the station key name {station : title}
     ghettoApi.init_current_song_dict(current_song_dict)
@@ -218,9 +218,11 @@ class GRecorder:
     @staticmethod
     def g_recorder_head(directory_save, stream_suffix, str_radio, str_action):
         """ return nothing, loop
-        clean metadata from problematic characters for writing to file system, hopefully caught all
-        create file name and path from current metadata for recorder (tail)
-        create _incomplete string to mark first and last incomplete file
+
+        Info
+           clean metadata from problematic characters for writing to file system, hopefully caught all
+           create file name and path from current metadata for recorder (tail)
+           create _incomplete string to mark first and last incomplete file
         """
         if str_action == "listen":
             return
@@ -262,6 +264,7 @@ class GRecorder:
     @staticmethod
     def g_recorder_path_transfer_test(str_radio):
         """ called by recorder tail, recorder head function put path in dict, if path is not there for key, exit
+
         Raise:
             inform user on html, error occurred
             kill all radio threads to not introduce strange behaviour
@@ -277,11 +280,12 @@ class GRecorder:
     @staticmethod
     def g_recorder_cache_the_file(str_radio, full_file_path, record_file, ghetto_recorder, stream_request_size):
         """ recorder write to disk function
-        blacklist enabled:
-            skip writing, if title found in blacklist
 
-        no blacklist:
-            delete file and write new, if exists
+        blacklist_on:
+           skip writing, if title found in blacklist
+
+        blacklist_off:
+           delete file and write new, if exists
         """
         # extract title from path and write to "recorder_new_title_dict"
         title = GRecorder.g_recorder_record_trace(str_radio, full_file_path)
@@ -306,8 +310,9 @@ class GRecorder:
     @staticmethod
     def g_recorder_copy_file(full_file_path, ghetto_recorder, stream_request_size):
         """ copy recorder file to user file if file is bigger than one chunk of radio stream
+
         Raise:
-            OSError on disk fail or folder not writeable
+           OSError on disk fail or folder not writeable
          """
         ghetto_size = os.path.getsize(ghetto_recorder)
         if int(ghetto_size) >= int(stream_request_size):
@@ -329,8 +334,9 @@ class GRecorder:
     def g_recorder_record_trace(str_radio, full_file_path):
         """extract the clean file name (path build in recorder 'head') from path string,
 
-        remove file extension (.suffix), keep name
-        add to recorder_new_title_dict[radio], blacklist writer can compare existing titles with this one
+        Info
+           remove file extension (.suffix), keep name
+           add to recorder_new_title_dict[radio], blacklist writer can compare existing titles with this one
         """
         head, tail = os.path.split(full_file_path)
         tail_list = tail.split('.')
@@ -345,9 +351,9 @@ class GRecorder:
         low level file action to close the recorder file and reset it, to not abandon 100mb
 
         Args:
-            str_radio       : radio name
-            ghetto_recorder : name of the recorder file in OS syntax, needed in if clause to copy to physical path
-            record_file     : alias of with statement for writing to recorder file
+           str_radio       : radio name
+           ghetto_recorder : name of the recorder file in OS syntax, needed in if clause to copy to physical path
+           record_file     : alias of with statement for writing to recorder file
 
         OSError on disk fail or folder not writeable
         """
@@ -385,12 +391,13 @@ class GRecorder:
     @staticmethod
     def g_recorder_ask_bit_rate(url):
         """ return bitrate from header
+
         Method:
-            urllib.request.urlopen(url, timeout=15, context=context_ssl) - only for requesting the bitrate
+           urllib.request.urlopen(url, timeout=15, context=context_ssl) - only for requesting the bitrate
 
         Raise:
-            correct mis configured values
-            if all goes wrong, return a predefined value
+           correct mis configured values
+           if all goes wrong, return a predefined value
         """
         try:
             with urllib.request.urlopen(url, timeout=15, context=context_ssl) as response:
@@ -419,8 +426,9 @@ class GRecorder:
     def g_recorder_calc_chunk_size(url):
         """ return bitrate from header info of radio to adapt buffer size
 
-        avoid digital noise, delays and connection breaks
-        buffer too small introduces stops, buffer too big endless delay on radio connect (fill buffer)
+        Info
+           avoid digital noise, delays and connection breaks
+           buffer too small introduces stops, buffer too big endless delay on radio connect (fill buffer)
         """
         stream_chunk_size = io.DEFAULT_BUFFER_SIZE * 4  # 8KB * x; HQ audio 320kB/s
         if GRecorder.g_recorder_ask_bit_rate(url):
@@ -438,9 +446,10 @@ class GRecorder:
         """ return instance of 'TerminalRequestHandler', create a mini http server
         only in command line mode
 
-        grab the instance and set GBase.terminal_http_server_avail_flag = False
-        GBase.terminal_run = False  recorder thread can look if we run in a terminal window
-        all threads try to capture the flag, winner should be the first radio selected in menu
+        Info
+           grab the instance and set GBase.terminal_http_server_avail_flag = False
+           GBase.terminal_run = False  recorder thread can look if we run in a terminal window
+           all threads try to capture the flag, winner should be the first radio selected in menu
         """
         handler_http_srv_object = ""
         if GBase.terminal_run:
@@ -467,24 +476,23 @@ class GRecorder:
         """ recorder loop return nothing
 
         must recognize change in metadata to work on header and tail of aac file datastructure, is cut out of the stream
-        Functions
-        ---------
-        handler_http_srv_object - "try" to create an instance of GRecorder.http_srv_object_create(str_radio)
 
-            on title change
-                GRecorder.record_write_last            - last chunk of title must be cleaned if aac file
-                GRecorder.g_recorder_cache_the_file    - store the concatenated chunks since last title change, copy
-                GRecorder.g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
-                full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
+        Functions
+           handler_http_srv_object - "try" to create an instance of GRecorder.http_srv_object_create(str_radio)
+              on title change
+                 GRecorder.record_write_last            - last chunk of title must be cleaned if aac file
+                 GRecorder.g_recorder_cache_the_file    - store the concatenated chunks since last title change, copy
+                 GRecorder.g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
+                 full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
 
             title grabbing
-                new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
-                record_file.write(new_chunk)                                 - write to recorder file
-                handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
+               new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
+               record_file.write(new_chunk)                                 - write to recorder file
+               handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
 
              loop exit
                 GRecorder.g_recorder_teardown(str_radio, record_file, ghetto_recorder)
-                  clean up, mark and copy incomplete file, reset recorder file to zero
+                clean up, mark and copy incomplete file, reset recorder file to zero
 
              Exception
                 Network errors occurred in reality,
@@ -570,11 +578,11 @@ class GRecorder:
     @staticmethod
     def record_acp_fff1_sync_word_tail(chunk):
         """clean cut at the end, cut out the last bytes starting with ff f1 (if not, result is a defective payload),
-
         so browser do not stop with silent error and will play next file
+
         Exception
-            real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
-            work against it, to not break the flow
+           real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
+           work against it, to not break the flow
         """
         hex_chunk = chunk.hex()
         start, end = -1, -5
@@ -601,13 +609,15 @@ class GRecorder:
     def record_acp_fff1_sync_word_header(chunk):
         """cut files out of the stream on metadata change, so the end of a file is not likely the correct start for new
 
-        search aacp (acp plus) frame start sequence to clean the file so browser do not stop with silent error
-        convert byte stream to hex, search ff f1 index_of_chunk[0] to index_of_chunk[4]
-        shift the search frame in hex to right, cut out from start and return as bytes
+        Info
+           search aacp (acp plus) frame start sequence to clean the file so browser do not stop with silent error
+           convert byte stream to hex, search ff f1 index_of_chunk[0] to index_of_chunk[4]
+           shift the search frame in hex to right, cut out from start and return as bytes
+
         Exception
-            error occurred in Tail, but be prepared
-            real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
-            work against it, to not break the flow
+           error occurred in Tail, but be prepared
+           real world error occurred (ValueError: non-hexadecimal number found in fromhex() arg at position 64805)
+           work against it, to not break the flow
         """
         hex_chunk = chunk.hex()
         start, end = 0, 4
@@ -633,9 +643,10 @@ class GRecorder:
     def g_recorder_request(url):
         """" return the request object of the url, or False
         url was tested in Gnet with "urllib" and context (SSL) manager
+        
         Exception
-            this is the main request to 'dock' to the radio server
-            we want to know why and when the connection was broken
+           this is the main request to 'dock' to the radio server
+           we want to know why and when the connection was broken
         """""
         try:
             request = urllib.request.urlopen(url, timeout=3000, context=context_ssl)
@@ -647,18 +658,20 @@ class GRecorder:
     @staticmethod
     def g_recorder_tail(url, str_radio, path_to_save, suffix, str_action):
         """ return nothing,  dispatch record and listen action
+
         Functions
-        ---------
-            GRecorder.g_recorder_request(url) - open the radio data connection and return the response object
-            record
-                GRecorder.g_recorder_await_head(str_radio)          - rec head function gives start for rec tail, this
-                GRecorder.g_recorder_path_transfer_test(str_radio)  - exit if head can not get a valid path, fail
-                GRecorder.g_recorder_rec(... )                      - call the recorder and present the response object
-            listen
-                loop
-                GRecorder.g_recorder_write_queue(...) - feed the buffer dictionary for html audio element endpoints
-                break
-                    GRecorder.g_recorder_empty_queue(str_radio) - remove all buffer from queue to drain audio element
+           GRecorder.g_recorder_request(url) - open the radio data connection and return the response object
+
+           record
+               GRecorder.g_recorder_await_head(str_radio)          - rec head function gives start for rec tail, this
+               GRecorder.g_recorder_path_transfer_test(str_radio)  - exit if head can not get a valid path, fail
+               GRecorder.g_recorder_rec(... )                      - call the recorder and present the response object
+
+           listen
+              loop
+              GRecorder.g_recorder_write_queue(...) - feed the buffer dictionary for html audio element endpoints
+              break
+              GRecorder.g_recorder_empty_queue(str_radio) - remove all buffer from queue to drain audio element
         """
         audio_stream_queue = queue.Queue(maxsize=5)  # for safety if listen and browser disconnects (no get - pull)
         stream_chunk_size = GRecorder.g_recorder_calc_chunk_size(url)
@@ -707,8 +720,9 @@ class GRecorder:
     @staticmethod
     def playlist_m3u(str_radio, str_url):
         """ return the first server of the playlist
+
         Raise:
-            we want to know why and when the connection was broken
+           we want to know why and when the connection was broken
         """
         try:
             request = Request(str_url)
@@ -757,21 +771,21 @@ def record_start_radio(str_radio, url, stream_suffix, dir_save, str_action):
 
 def record(str_radio, url, str_action):
     """ return nothing, prepare environment for start of radio threads and start 'em
-
     server was tested alive, but network errors are common
+
     Methods
-        GNet.stream_filetype_url(url, str_radio) - return file type of stream, exit the radio on error
+       GNet.stream_filetype_url(url, str_radio) - return file type of stream, exit the radio on error
 
     Dictionaries
-        GRecorder.current_song_dict[str_radio]       - rec, "unknown_title" first file name; listen, "" first title
-        GRecorder.start_write_command[str_radio]     - if recorder "head" is ready set True
-        GRecorder.skipped_in_session_dict[str_radio] - skipped titles during session for EisenRadio html info
-        GBase.dict_exit[str_radio]                   - True for thread exit its loop
+       GRecorder.current_song_dict[str_radio]       - rec, "unknown_title" first file name; listen, "" first title
+       GRecorder.start_write_command[str_radio]     - if recorder "head" is ready set True
+       GRecorder.skipped_in_session_dict[str_radio] - skipped titles during session for EisenRadio html info
+       GBase.dict_exit[str_radio]                   - True for thread exit its loop
 
     Exception
-        a radio changed the endpoint, responded ok but without content-type, no problem
-        next radio send bool value, raised TypeError
-        do a clean exit
+         radio changed the endpoint, responded ok but without content-type, no problem
+        ext radio send bool value, raised TypeError
+        o a clean exit
      """
     GNet.bit_rate_url(url, str_radio)                         # bit rate stored in a dict, GNet.bit_rate_dict
     stream_suffix = GNet.stream_filetype_url(url, str_radio)  # server was tested alive but this is only half true
@@ -804,10 +818,11 @@ def record(str_radio, url, str_action):
 def terminal_feed_record(radio_dict):
     """ return nothing, start recording all radios that passed the online test
 
-     GRecorder.record_active_dict[str_radio] = True, Eisenradio package write recorder button down, so we do
-     GRecorder.record_active_dict[str_radio] = False, recorder use it as one of the termination events
-     call record(str_radio, str_url, "record") with "record" action, Eisenradio uses also "listen" action
-     """
+    Info
+       GRecorder.record_active_dict[str_radio] = True, Eisenradio package write recorder button down, so we do
+       GRecorder.record_active_dict[str_radio] = False, recorder use it as one of the termination events
+       call record(str_radio, str_url, "record") with "record" action, Eisenradio uses also "listen" action
+    """
     for str_radio, str_url in radio_dict.items():
         if str_radio not in GNet.dict_error.keys():
             GRecorder.record_active_dict[str_radio] = True
@@ -823,9 +838,10 @@ def resolve_playlist(str_radio, str_url):
 def is_radio_online(str_radio, str_url):
     """return url, if input url was a play list; return False if server offline, https://streams.br.de/bayern1obb_2.m3u
 
-    delete errors from dict to write new if any
-    GNet.is_server_alive() writes in error dict "GNet.dict_error[str_radio]" if server fails
-    called by eishome.dispatch_record_is_alive
+   Info
+      delete errors from dict to write new if any
+      GNet.is_server_alive() writes in error dict "GNet.dict_error[str_radio]" if server fails
+      called by eishome.dispatch_record_is_alive
     """
     if str_radio in GNet.dict_error.keys():
         del GNet.dict_error[str_radio]
@@ -875,12 +891,13 @@ def terminal_remove_offline_radios(radio_terminal_dict):
     """ return nothing, delete offline radios from dict of desired radios
 
     prepare lists as arguments for map()
-      threaded execution with argument list in correct order,
-      execution time is only dependent on max timeout of request, if timeout is 15, the list needs 15s to return +-
+       threaded execution with argument list in correct order,
+       execution time is only dependent on max timeout of request, if timeout is 15, the list needs 15s to return +-
 
-    the argument dict may contain playlist urls, which must be resolved to one normal url
-    "url_online_list" contains only resolved urls, update the argument dict with those
-    delete key:value pairs from argument dict where "None" (radio offline) is found in url_online_list
+    Info
+       the argument dict may contain playlist urls, which must be resolved to one normal url
+       "url_online_list" contains only resolved urls, update the argument dict with those
+       delete key:value pairs from argument dict where "None" (radio offline) is found in url_online_list
     """
     radio_list = [radio_name for radio_name in radio_terminal_dict.keys()]
     url_list = [url for url in radio_terminal_dict.values()]
@@ -923,7 +940,7 @@ def terminal_populate_new_blacklist(path):
     add new radios to the list, if list already exists
 
     Exception
-        make write error public
+       make write error public
     """
     actual_radio_list = ghetto_menu.terminal_record_all_radios_get()
     first_key = 'GhettoRecorder message'
@@ -948,7 +965,7 @@ def terminal_update_blacklist(path):
     update loaded dict, write dict
 
     Exception
-        make write error public
+       make write error public
     """
     actual_radio_list = ghetto_menu.terminal_record_all_radios_get()
     with open(os.path.join(path), "r") as reader:
@@ -971,11 +988,12 @@ def terminal_update_blacklist(path):
 def terminal_blacklist_enable(blacklist_name):
     """ prepare env for blacklist writer module to start and work easily
 
-     get directory of config file to put blacklist in the same directory
-     call to write a new or update an existing blacklist with radios from config file
-     loads the reader json string from written file into the blacklist dictionary
-     writes the blacklist file name to the api, blacklist writer can update file
-     starts the blacklist writer daemon
+    Info
+       get directory of config file to put blacklist in the same directory
+       call to write a new or update an existing blacklist with radios from config file
+       loads the reader json string from written file into the blacklist dictionary
+       writes the blacklist file name to the api, blacklist writer can update file
+       starts the blacklist writer daemon
      """
     settings_dir = ghetto_menu.terminal_record_settings_dir_get()
     blacklist_written = terminal_write_blacklist(settings_dir, blacklist_name)
@@ -1012,43 +1030,36 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def terminal_main():
     """ command line version (GhettoRecorder package) with a menu, settings.ini and blacklist, no database
-    functions for command line start with terminal_
+    functions for command line start with 'terminal_'
 
-    Modules for terminal command line, THE GhettoRecorder:
-        ghetto_blacklist.py - blacklist writer updates json file and ghettoApi for recorder to find old titles'
-        ghetto_container.py - prepare for user interaction in container env
-        ghetto_help.py      - ?, want to push all help to "readthedocs" website
-        ghetto_ini.py       - reads, updates sections ([GLOBAL]) in settings.ini config file
-        ghetto_menu.py      - display config file content, calls ghetto_ini to update settings for path and blacklist
-        ghetto_recorder.py  - main module, GBase.radio_base_dir pulled from ghetto_ini to avoid circular import
-        ghettoApi           - reuse methods of Eisenradio to avoid import problems, push blacklist name ..., __init__.py
-        settings.ini        - configuration file
+    Modules for command line, THE GhettoRecorder
+       ghetto_blacklist.py - blacklist writer updates json file and ghettoApi for recorder to find old titles'
+       ghetto_container.py - prepare for user interaction in container env
+       ghetto_ini.py       - reads, updates sections ([GLOBAL]) in settings.ini config file
+       ghetto_menu.py      - display config file content, calls ghetto_ini to update settings for path and blacklist
+       ghetto_recorder.py  - main module, GBase.radio_base_dir pulled from ghetto_ini to avoid circular import
+       ghettoApi           - reuse methods of Eisenradio to avoid import problems, push blacklist name ..., __init__.py
+       settings.ini        - configuration file
 
-    Record_path:
-        one, same folder as this module
-        two, path from [GLOBAL] setting
-        three, container path
-        four, set path from menu option
-        terminal_custom_record_path_get() set GBase.radio_base_dir and shows in menu;
+    Record_path
+       one, same folder as this module
+       two, path from [GLOBAL] setting
+       three, container path
+       four, set path from menu option
+       terminal_custom_record_path_get() set GBase.radio_base_dir and shows in menu;
 
-    Container:
-        the Python package is already deployed in a docker or snap container, prepare for user interaction
+    Container
+       the Python package is already deployed in a docker or snap container, prepare for user interaction
 
-    Threads:
-        metadata thread extracts titles in intervals,
-        head, cleans' metadata, adds timestamp if no metadata, provides the full path, gives recorder start command,
-        tail, recorder feeds http server, cleans aac/aacp segments and writes stream segments as a file
+    Threads
+       metadata thread extracts titles in intervals,
+       head, cleans' metadata, adds timestamp if no metadata, provides the full path, gives recorder start command,
+       tail, recorder feeds http server, cleans aac/aacp segments and writes stream segments as a file
 
-    Blacklist:
-        Name, "blacklist.json", a json dictionary
-        "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for each radio
-        "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main, if set recorder refuses to copy
-
-    Info:
-        Recorder "g_recorder_cache_the_file()" (copy file, reset seek recorder file) looks if blacklist feature is enabled
-        "ghettoApi.blacklist_enabled_global"
-        then it looks if title is not in its blacklist
-        "ghettoApi.all_blacklists_dict[str_radio]" {'goa_psy': ['_incomplete_Midi Rico - Explosions Wackier animaskntru'],}
+    Blacklist
+       Name, "blacklist.json", a json dictionary
+       "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for a radio
+       "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main, if set recorder refuses copy
     """
     radio_terminal_dict = {}
     GBase.terminal_run = True  # we run in a terminal window
