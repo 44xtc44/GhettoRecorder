@@ -7,7 +7,7 @@ name = "GhettoRecorder"
 version = "2.4.3"
 description = "command line internet radio grabber with listen capabilities"
 keywords = ['audio', 'aac repair',]
-license = "LICENSE.rst"
+license = {file = "LICENSE.rst"}
 readme = "README.rst"
 requires-python = ">=3.7"
 dynamic = ['authors',]
