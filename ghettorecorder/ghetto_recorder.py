@@ -1,3 +1,28 @@
+import io
+import os
+import ssl
+import sys
+import json
+import queue
+import shutil
+import signal
+import certifi
+import threading
+import socketserver
+import urllib.parse
+import urllib.request
+import concurrent.futures
+from time import sleep, strftime
+from pathlib import Path as Pathlib_path
+from urllib.request import urlopen, Request
+from ghettorecorder.api import ghettoApi
+from ghettorecorder.ghetto_net import GNet
+from ghettorecorder.ghetto_meta import GMeta
+import ghettorecorder.ghetto_menu as ghetto_menu
+import ghettorecorder.ghetto_http_srv as ghetto_http_srv
+import ghettorecorder.ghetto_container as ghetto_container
+import ghettorecorder.ghetto_blacklist as ghetto_blacklist
+
 """
 MIT License
 
@@ -23,14 +48,13 @@ SOFTWARE.
 """
 
 """
-
 connections:
-   rl is tested before the "real" connection to write error messages to a dict and html frontend
-   ontent type, bitrate and playlist (some url may deliver only a playlist with real urls)
+   url is tested before the "real" connection to write error messages to a dict and html frontend
+   content type, bitrate and playlist (some url may deliver only a playlist with real urls)
    or every connection (rec or listen) is a second connection opened to ask every few seconds for metadata, aka title
-   sking for metadata in one stream leads to blocks of metadata in the datastream; digital noise and audio jumps
-   f a listen connection is opened and recording is activated a second connection is opened
-   his is four connections in sum for the radio, two streams, two metadata
+   asking for metadata in one stream leads to blocks of metadata in the datastream; digital noise and audio jumps
+   if a listen connection is opened and recording is activated a second connection is opened,
+   this is four connections in sum for the radio, two streams, two metadata
    
 buttons:
    button status is written to dicts in Python,
@@ -39,30 +63,6 @@ url requests:
    use urllib with certify and ssl imports plus ssl.create_default_context(cafile=certifi.where())
    to avoid ssl errors on android and mac
 """
-import io
-import os
-import ssl
-import sys
-import json
-import queue
-import shutil
-import signal
-import certifi
-import threading
-import socketserver
-import urllib.parse
-import urllib.request
-import concurrent.futures
-from time import sleep, strftime
-from pathlib import Path as Pathlib_path
-from urllib.request import urlopen, Request
-from ghettorecorder.api import ghettoApi
-from ghettorecorder.ghetto_net import GNet
-from ghettorecorder.ghetto_meta import GMeta
-import ghettorecorder.ghetto_menu as ghetto_menu
-import ghettorecorder.ghetto_http_srv as ghetto_http_srv
-import ghettorecorder.ghetto_container as ghetto_container
-import ghettorecorder.ghetto_blacklist as ghetto_blacklist
 
 # android ssl fix, mac seems to have same fun; used by urllib request functions
 os.environ['SSL_CERT_FILE'] = certifi.where()   # used in flask __init__.py; worked in Android, but black box
@@ -1018,7 +1018,7 @@ def signal_handler(sig, frame):
         GRecorder.record_active_dict[radio] = False
         GBase.dict_exit[radio] = True
     ghettoApi.stop_blacklist_writer = True
-    print(' <<>> Stop recording in a few seconds, cleanup ...')
+    print(' <<>> Stop in a few seconds, cleanup ...')
     sleep(5)
     print('\nThank you for using the GhettoRecorder module.')
     sys.exit(0)
@@ -1061,13 +1061,11 @@ def terminal_main():
        "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for a radio
        "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main, if set recorder refuses copy
     """
-    radio_terminal_dict = {}
     GBase.terminal_run = True  # we run in a terminal window
     blacklist_dict = GBase.terminal_blacklist_name
-    is_container, default_path = ghetto_container.container_setup_use()
+    is_container = ghetto_container.container_setup_use()
     if is_container:
-        print(f"..created default record path for container,"
-              f"\ncopied settings.ini to that path {default_path}")
+        print(f".. created default record path for container")
     # show main menu and collect radios or update config file, if record is selected we proceed
     ghetto_menu.menu_main()
     radio_terminal_dict = ghetto_menu.record_read_radios()
