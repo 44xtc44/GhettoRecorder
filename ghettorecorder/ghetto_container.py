@@ -1,13 +1,13 @@
-""" helper for python package to container, to user deployment
-this module hits, if the user calls the container
-docker container
-snap container, snapcraft setup for linux
+""" module for ghettorecorder Python package to container deployment
+
+Target
+   docker container
+   snap container, snapcraft setup for linux OS
 
 Functions
----------
-    container_setup_use()                        - if a container set record parent dir for Snap or Docker
-    container_parent_dir(container)              - called by 'container_setup_use()'
-    container_copy_settings(source_ini, dst_ini) - called by 'container_setup_use()' copy 'settings.ini' to parent dir
+   container_setup_use()  - decide to set up a container env
+   container_config_dir() - get path for new folder creation
+   create_config_env()    - overwrite base dir for ghetto, copy config file to that dir
 """
 import os
 import shutil
@@ -16,58 +16,69 @@ import ghettorecorder.ghetto_ini as ghetto_ini
 
 
 def container_setup_use():
-    """ prepare containerized GhettoRecorder package for usage
-    change the default parent record path
-    copy settings.ini to that location
+    """ return False if no package specific env variable is set
+
+     Info
+        variable must be set in package config file Dockerfile or snapcraft.yaml
+        change and create the default (parent) record path
+        copy settings.ini to that path
     """
     is_container = False
-    try:
-        if os.environ["SNAP"]:
-            print('Snap Container')
-            container_parent_dir('SNAP')
-            is_container = True
-            return is_container, container_parent_dir
-    except KeyError:
-        pass
+    is_snap_package = 'GHETTORECORDER_SNAP' in os.environ   # var must be set in package config
+    is_docker_device = 'DOCKER' in os.environ               # var must be set in package config
 
-    try:
-        if os.environ["DOCKER"]:
-            print('Docker Container')  # must set a var in Dockerfile to work, DOCKER=True
-            container_parent_dir('DOCKER')
-            is_container = True
-            return is_container, container_parent_dir
-    except KeyError:
-        pass
-    return is_container, container_parent_dir
+    if is_snap_package:
+        print('Snap Container')
+        is_container = True
+        container_config_dir('SNAP')
+        return is_container
+
+    if is_docker_device:
+        print('Docker Container')
+        is_container = True
+        container_config_dir('DOCKER')
+        return is_container
+    return is_container
 
 
-def container_parent_dir(container):
-    """ get user: create dir under home folder for snap
-    create parent record folder
-    write new path
-    update radio_base_dir in GIni (central update point for default path in terminal mode)
-    copy settings.ini to that folder
+def container_config_dir(container):
+    """ assemble the path to new config dir (settings.ini and blacklist)
+
+    variable
+       get user - create dir under home folder for snap
      """
-    username = getpass.getuser()
-    print('Hello, ' + username)
-
-    if container == 'SNAP':                      # SNAP
+    if container == 'SNAP':                                   # SNAP
+        username = getpass.getuser()
+        print('Hello, ' + username)
         ghetto_folder = os.path.join('home', username, 'GhettoRecorder')
     else:
-        ghetto_folder = '//tmp//GhettoRecorder'  # DOCKER
+        ghetto_folder = os.path.join('tmp', 'GhettoRecorder')  # DOCKER
 
+    create_config_env(ghetto_folder)
+
+
+def create_config_env(ghetto_folder):
+    """ copy config files outside the default package folder /site-settings/ghettorecorder
+
+    statements
+       create new parent record folder
+       overwrite radio_base_dir default path where config is searched
+       copy settings.ini to that folder, blacklist is created automatically if choice
+    """
+    make_config_folder(ghetto_folder)
+    ghetto_ini.GIni.radio_base_dir = ghetto_folder
+    source_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini')
+    dst_ini = os.path.join(ghetto_folder, 'settings.ini')
+    container_copy_settings(source_ini, dst_ini)
+
+
+def make_config_folder(ghetto_folder):
     try:
         os.makedirs(ghetto_folder, exist_ok=True)
         print(f"\tOK: {ghetto_folder}")
     except OSError:
         print(f"\tDirectory {ghetto_folder} can not be created")
         return False
-
-    ghetto_ini.GIni.radio_base_dir = ghetto_folder
-
-    source_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini')
-    dst_ini = os.path.join(ghetto_folder, 'settings.ini')
-    container_copy_settings(source_ini, dst_ini)
 
 
 def container_copy_settings(source_ini, dst_ini):
