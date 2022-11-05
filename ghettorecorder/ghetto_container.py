@@ -50,9 +50,9 @@ def container_config_dir(container):
     if container == 'SNAP':                                   # SNAP
         username = getpass.getuser()
         print('Hello, ' + username)
-        ghetto_folder = os.path.join('home', username, 'GhettoRecorder')
+        ghetto_folder = os.path.join('/home', username, 'GhettoRecorder')
     else:
-        ghetto_folder = os.path.join('tmp', 'GhettoRecorder')  # DOCKER
+        ghetto_folder = os.path.join('/tmp', 'GhettoRecorder')  # DOCKER
 
     create_config_env(ghetto_folder)
 
@@ -66,7 +66,8 @@ def create_config_env(ghetto_folder):
        copy settings.ini to that folder, blacklist is created automatically if choice
     """
     make_config_folder(ghetto_folder)
-    ghetto_ini.GIni.radio_base_dir = ghetto_folder
+    ghetto_ini.GIni.global_custom_path = ghetto_folder   # global seems bad idea, only one attribut change, settings_dir
+    ghetto_ini.GIni.settings_dir = ghetto_folder         # todo possible bug in blacklist creation functions
     source_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini')
     dst_ini = os.path.join(ghetto_folder, 'settings.ini')
     container_copy_settings(source_ini, dst_ini)
@@ -76,8 +77,8 @@ def make_config_folder(ghetto_folder):
     try:
         os.makedirs(ghetto_folder, exist_ok=True)
         print(f"\tOK: {ghetto_folder}")
-    except OSError:
-        print(f"\tDirectory {ghetto_folder} can not be created")
+    except OSError as error_os:
+        print(f"\tDirectory {ghetto_folder} can not be created {error_os}")
         return False
 
 

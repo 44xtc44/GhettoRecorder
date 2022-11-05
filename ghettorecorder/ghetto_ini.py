@@ -29,15 +29,17 @@ class GIni:
 
      """
 
-    radio_names_list = []       # search radio name via character
+    radio_names_list = []  # search radio name via character
     radio_base_dir = "radios"
     this_module_path = os.path.dirname(os.path.abspath(__file__))
     settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
     settings_dir = os.path.dirname(settings_path)
-    config_stations = {}          # radio, url pairs
-    config_global = {}            # extra infos like different path SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
-    global_custom_path = settings_dir  # custom parent directory for records; via menu option set path or [GLOBAL] path
-    global_custom_blacklist = ""  # blacklist feature on/off
+    config_stations = {}  # radio, url pairs
+    config_global = {}  # extra infos like different path SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
+    # custom parent directory for records;
+    # use menu option set path, or [GLOBAL] path in config file, or change from external module directly
+    global_custom_path = settings_dir
+    global_custom_blacklist = ""  # blacklist feature 'True' or 'False'
 
     @staticmethod
     def show_items_ini_file():
