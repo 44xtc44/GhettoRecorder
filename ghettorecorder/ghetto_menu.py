@@ -336,7 +336,7 @@ def parent_record_path_change():
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
         custom_path = line_input.strip()  # to validate the name
 
-        if len(custom_path) == 0:
+        if not len(custom_path):
             print("nothing to do ...")
             menu_main()
             break
@@ -370,7 +370,7 @@ def config_path_change():
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
         custom_path = line_input.strip()  # to validate the name
 
-        if len(custom_path) == 0:
+        if not len(custom_path):
             print("nothing to do ...")
             menu_main()
             break
@@ -437,7 +437,7 @@ def aac_file_repair():
         line_input = input('Enter a path, OS syntax (f:\\10 or /home ) -->:')
         aac_path = line_input.strip()  # to validate the name
 
-        if len(aac_path) == 0:
+        if not len(aac_path):
             print("nothing to do ...")
             menu_main()
             break
