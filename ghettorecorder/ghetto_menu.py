@@ -364,7 +364,7 @@ def config_path_change():
         test if path is writeable
         show new path, GIni.global_config_get()
      """
-    print('\n\tWrite Path to settings.ini and blacklist.json file')
+    print('\n\tType path to folder with settings.ini and blacklist.json (used for radio sub directories)')
     GIni.global_config_get()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
