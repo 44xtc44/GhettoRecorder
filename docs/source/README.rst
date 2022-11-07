@@ -4,21 +4,23 @@ command line internet radio grabber with listen capabilities
 
 Info
 ----
-| It must be deployed as a Python package.
-| The package can be called on commandline ``$ ghettorecorder`` directly.
-| GhettoRecorder folder can be copied elsewhere, run ghetto_recorder.py from there.
+| Can read and write removable, network and local storage.
+| AAC file repair during operation and as an offline option.
+| Type ``$ ghettorecorder`` to display the menu.
+| Package folder can be copied elsewhere, run ``cmd.py`` from there.
 |
 | Multiple menu options are available:
 |   * Custom save path (written to config)
-|   * Title blacklist  (written to config)
+|   * Blacklist (written to config)
 |   * Store config file elsewhere
-|   * Repair of aac files https://aacrepair.readthedocs.io/
+|   * AACP repair, AAC repair files https://aacrepair.readthedocs.io/
 
 Links
 ^^^^^
 * Snap: https://snapcraft.io/ghettorecorder
 * GitHub: https://github.com/44xtc44/GhettoRecorder
-* ReadTheDocs: https://ghettorecorder.readthedocs.io/ (module index)
+* Issues: https://github.com/44xtc44/GhettoRecorder/issues
+* ReadTheDocs: https://ghettorecorder.readthedocs.io/ (see module index)
 
 Configuration File
 ------------------
@@ -32,7 +34,6 @@ INI files consist of sections to divide different settings.
 | [GLOBAL] stores blacklist status and the parent save directory location
 | blacklist_enable = ``True``
 | save_to_dir = ``f:\31``
-
 
 Usage
 -----
