@@ -11,6 +11,7 @@ recorder compare it with "ghettoApi.all_blacklists_dict[str_radio]"
 if new title is not found in 'all_blacklists_dict' on api, append title and dump the whole dict to disk
 if a title is 3min long, dump all 3min
  """
+import os.path
 import time
 import copy
 import json
@@ -56,13 +57,15 @@ def update_radios_blacklists():
     for radio, new_title in recorder_dict_cp.items():
         if new_title not in ghettoApi.all_blacklists_dict[radio]:
             ghettoApi.all_blacklists_dict[radio].append(new_title)
-            print(f" -> blacklist {radio}: {new_title} [skipped {skipped_in_session(radio)}]")
-    try:
-        with open(ghettoApi.path_ghetto_blacklist, 'w') as writer:
-            writer.write(json.dumps(ghettoApi.all_blacklists_dict, indent=4))  # no indent is one long line
-    except OSError as error:
-        msg = f"\n\t--->>> error in update_radios_blacklists(), can not create {error}"
-        print(msg)
+            print(f" -> blacklist {radio}: {new_title.encode('utf-8')} [skipped {skipped_in_session(radio)}]")
+
+            try:
+                blacklist_file = os.path.join(ghettoApi.blacklist_dir, ghettoApi.blacklist_name)
+                with open(blacklist_file, 'w') as writer:
+                    writer.write(json.dumps(ghettoApi.all_blacklists_dict, indent=4))  # no indent is one long line
+            except OSError as error:
+                msg = f"\n\t--->>> error in update_radios_blacklists(), can not create {error}"
+                print(msg)
 
 
 def skipped_in_session(radio):
