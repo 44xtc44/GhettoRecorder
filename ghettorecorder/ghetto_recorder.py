@@ -80,10 +80,9 @@ print(f'ghettorecorder {version} (an Eisenradio module)')
 
 class GBase:
     """base class attributes and utils methods,
-    prefix 'terminal_' is exclusively used for command line version (running ghetto_recorder.py)
+    prefix 'terminal' is exclusively used for command line version (running ghetto_recorder.py)
 
     Attributes
-       terminal_radio_list = []  # all radios in settings.ini
        terminal_blacklist_name = "blacklist.json" - name blacklist
        terminal_http_server_avail_flag = True  - one thread may create the http server instance than switch off, False
        terminal_http_server_thread_name = ""    - name of the thread that owns the terminal_http_server_avail_flag
@@ -97,7 +96,8 @@ class GBase:
        this_time()                     - mark a recorded title if no metadata are available
     """
     # class attribute
-    terminal_radio_list = []  # all radios in settings.ini "ghetto_menu.terminal_record_all_radios_get()"
+    radio_parent = "radios"
+    config_name = "settings.ini"
     terminal_blacklist_name = "blacklist.json"
     # simple http server instance for terminal radio listening is created in g"_recorder_rec()" in one thread only
     terminal_http_server_avail_flag = True  # one thread may create the http server instance than switch off, False
@@ -105,7 +105,7 @@ class GBase:
     terminal_run = False  # thread can look if we run in a terminal window, set in "terminal_main()"
     dict_exit = {}  # radio listen, record, metadata threads stop if listed, html timer can also call {goa: true,...}
 
-    radio_base_dir = ""  # html, eishome.set_radio_path(); terminal version set it in ghetto_ini.py (circular import)
+    radio_base_dir = "parent_for_sub_dirs"  # eishome.set_radio_path(); terminal set it in ghetto_ini.py; FULL path
 
     def __init__(self, radio_base_dir=None, settings_path=None):
         self.instance_attr_time = 0
@@ -163,7 +163,7 @@ class GRecorder:
        g_recorder_head(...) - thread loop, clean metadata from problematic chars, create file name and path for "tail"
        g_recorder_await_head(str_radio)         - g_recorder_tail() must wait to get first path/file name
        g_recorder_path_transfer_test(str_radio) - return if no valid path can be presented by 'g_recorder_await_head()'
-       g_recorder_cache_the_file(str_radio, full_file_path, record_file, ghetto_recorder, stream_request_size):
+       g_recorder_cache_the_file()
        g_recorder_reset_file_offset(record_file) - seek(0) and truncate recorder file to start new record
        g_recorder_copy_file(full_file_path, ghetto_recorder, stream_request_size) - copy new recorded file
        g_recorder_remove_file(full_file_path, record_file) - del old if new file must be copied, no blacklist active
@@ -190,7 +190,6 @@ class GRecorder:
        resolve_playlist(str_radio, str_url) - return first url from a playlist 'GRecorder.playlist_m3u(str_radio, ...)'
        is_radio_online(str_radio, str_url) - return url if asked url was a play list, returns False if normal server
        terminal_main_thread_loop() - loop keeps main thread alive, killed via 'signal_handler()' strg+c
-       terminal_custom_record_path_get() - return parent record dir if custom path is set, take it, else default
        terminal_test_record_server(str_radio, str_url) - return radio url, return nothing if offline
        terminal_remove_offline_radios(radio_terminal_dict) - delete offline radios from dict of desired radios
        terminal_write_blacklist(bl_path, bl_name) - write blacklist if not exists, else update it with new radio names
@@ -281,21 +280,27 @@ class GRecorder:
     def g_recorder_cache_the_file(str_radio, full_file_path, record_file, ghetto_recorder, stream_request_size):
         """ recorder write to disk function
 
-        blacklist_on:
+        blacklist_on
            skip writing, if title found in blacklist
 
-        blacklist_off:
+        blacklist_off
            delete file and write new, if exists
         """
         # extract title from path and write to "recorder_new_title_dict"
         title = GRecorder.g_recorder_record_trace(str_radio, full_file_path)
-        if ghettoApi.blacklist_enabled_global:
+        if ghettoApi.blacklist_enable:
             if title not in ghettoApi.all_blacklists_dict[str_radio]:
                 GRecorder.g_recorder_remove_file(full_file_path, record_file)
                 GRecorder.g_recorder_copy_file(full_file_path, ghetto_recorder, stream_request_size)
-                print(f'\n-WRITE->>> {str_radio}: {title}\n')
+                try:
+                    print(f'\n-WRITE->>> {str_radio}: {title.encode("utf-8")}\n')
+                except UnicodeEncodeError:
+                    print(f'\n-SKIP->>> {str_radio}: no title display, unicode, no OS language support\n')
             else:
-                print(f'\n-SKIP->>> {str_radio}: {title}\n')
+                try:
+                    print(f'\n-SKIP->>> {str_radio}: {title.encode("utf-8")}\n')
+                except UnicodeEncodeError:
+                    print(f'\n-SKIP->>> {str_radio}: no title display, unicode, no OS language support\n')
                 GRecorder.skipped_in_session_dict[str_radio].append(title)
         else:
             GRecorder.g_recorder_remove_file(full_file_path, record_file)
@@ -317,7 +322,7 @@ class GRecorder:
         ghetto_size = os.path.getsize(ghetto_recorder)
         if int(ghetto_size) >= int(stream_request_size):
             try:
-                shutil.copyfile(ghetto_recorder, full_file_path)
+                shutil.copyfile(ghetto_recorder, full_file_path.encode("utf-8"))
             except OSError as error:
                 message = f' Exception in g_recorder_copy_file; error: {error}'
                 print(message)
@@ -326,9 +331,10 @@ class GRecorder:
 
     @staticmethod
     def g_recorder_remove_file(full_file_path, record_file):
-        if os.path.exists(full_file_path):
-            os.remove(full_file_path)
+        if os.path.exists(full_file_path.encode('utf-8')):
+            os.remove(full_file_path.encode('utf-8'))
         record_file.flush()
+        return True
 
     @staticmethod
     def g_recorder_record_trace(str_radio, full_file_path):
@@ -355,11 +361,12 @@ class GRecorder:
            ghetto_recorder : name of the recorder file in OS syntax, needed in if clause to copy to physical path
            record_file     : alias of with statement for writing to recorder file
 
-        OSError on disk fail or folder not writeable
+        Exception:
+           OSError on disk fail or folder not writeable
         """
         head, tail = os.path.split(GRecorder.path_record_dict[str_radio])
-        incomplete_title = "_incomplete_" + tail
-        last_title = os.path.join(head, incomplete_title)
+        incomplete_title = bytes("_incomplete_", 'utf-8') + tail.encode('utf-8')
+        last_title = os.path.join(head.encode('utf-8'), incomplete_title)
         try:
             shutil.copyfile(ghetto_recorder, last_title)
         except OSError:
@@ -477,27 +484,26 @@ class GRecorder:
 
         must recognize change in metadata to work on header and tail of aac file datastructure, is cut out of the stream
 
-        Functions
+        Function
            handler_http_srv_object - "try" to create an instance of GRecorder.http_srv_object_create(str_radio)
-              on title change
-                 GRecorder.record_write_last            - last chunk of title must be cleaned if aac file
-                 GRecorder.g_recorder_cache_the_file    - store the concatenated chunks since last title change, copy
-                 GRecorder.g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
-                 full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
+           record_write_last - last chunk of title must be cleaned if aac file
+           g_recorder_cache_the_file - store the concatenated chunks since last title change
+           g_recorder_reset_file_offset - cleanup of recorder file, reset seek(), file to zero bytes
+           full_file_path = GRecorder.path_record_dict[str_radio] - set new file path to copy title (file name)
 
-            title grabbing
-               new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
-               record_file.write(new_chunk)                                 - write to recorder file
-               handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
+        title grabbing
+           new_chunk = request.read(stream_chunk_size) - store the current chunk in var to copy to recorder and http
+           record_file.write(new_chunk)                                 - write to recorder file
+           handler_http_srv_object.fifo_http_chunk_queue.put(new_chunk) - feed http server buffer
 
-             loop exit
-                GRecorder.g_recorder_teardown(str_radio, record_file, ghetto_recorder)
-                clean up, mark and copy incomplete file, reset recorder file to zero
+        loop exit
+           GRecorder.g_recorder_teardown(str_radio, record_file, ghetto_recorder)
+           clean up, mark and copy incomplete file, reset recorder file to zero
 
-             Exception
-                Network errors occurred in reality,
-                prepare for temporary local network card failure
-                write message to analyze
+        Exception
+           Network errors occurred in reality,
+           prepare for temporary local network card failure
+           write message to analyze
         """
         handler_http_srv_object = GRecorder.http_srv_object_create(str_radio)
         new_chunk = ""
@@ -516,10 +522,10 @@ class GRecorder:
                     try:
                         GRecorder.record_write_first(request.read(stream_chunk_size), record_file, suffix)
                     except (ConnectionResetError, OSError) as error:
-                        msg = f"{str_radio} g_recorder_rec() {error}"
+                        msg = f"{str_radio} g_recorder_rec() record_write_first {error}"
                         print(msg)
                     except Exception as error:
-                        msg = f"{str_radio} g_recorder_rec() {error}"
+                        msg = f"{str_radio} g_recorder_rec() record_write_first {error}"
                         print(msg)
                     full_file_path = GRecorder.path_record_dict[str_radio]
                 else:
@@ -527,19 +533,18 @@ class GRecorder:
                     try:
                         new_chunk = request.read(stream_chunk_size)
                     except (ConnectionResetError, OSError) as error:
-                        msg = f"{str_radio} g_recorder_rec() {error}"
+                        msg = f"{str_radio} g_recorder_rec() new_chunk {error}"
                         print(msg)
                     except Exception as error:
-                        msg = f"{str_radio} g_recorder_rec() {error}"
+                        msg = f"{str_radio} g_recorder_rec() new_chunk {error}"
                         print(msg)
                     # fill current file, write chunk to it
                     try:
                         record_file.write(new_chunk)
                     except TypeError as remote_host_closed_con:
-                        msg = f"error: {remote_host_closed_con} - retry"
+                        msg = f"error remote_host_closed_con: {remote_host_closed_con} - give_up_return"
                         print(msg)
-                        sleep(5)
-                        GRecorder.g_recorder_request(request.url)
+                        return
 
                     # if we are owner of the http server
                     if GBase.terminal_http_server_thread_name == str_radio:
@@ -805,11 +810,6 @@ def record(str_radio, url, str_action):
         ghettoApi.current_song_dict[str_radio] = ""
 
     GBase.dict_exit[str_radio] = False
-    # GBase.radio_base_dir set for html in eishome.set_radio_path(), and here terminal, if active
-    if GBase.terminal_run:
-        GBase.radio_base_dir = terminal_custom_record_path_get()
-        if not GBase.radio_base_dir:
-            return
     dir_save = os.path.join(GBase.radio_base_dir, str_radio)
     record_start_radio(str_radio, url, stream_suffix, dir_save, str_action)
     print(f".. run .. {str_radio}  {url} [{GNet.bit_rate_dict[str_radio]} kB/s]")
@@ -861,21 +861,6 @@ def terminal_main_thread_loop():
         sleep(1)
 
 
-def terminal_custom_record_path_get():
-    """ return a path for parent record dir
-     If a custom path is set take it, else use default path
-     """
-    custom_path = ghetto_menu.terminal_record_global_custom_path_get()
-    if not custom_path:
-        print("--> no path to record files ..")
-        return False
-    else:
-        base_dir = ghetto_menu.terminal_record_radio_base_dir_get()
-        path = os.path.join(custom_path, base_dir)
-    GBase.radio_base_dir = path
-    return path
-
-
 def terminal_test_record_server(str_radio, str_url):
     """ return radio url, return nothing if offline
      input url is playlist, download file and convert url to first playlist url
@@ -922,7 +907,7 @@ def terminal_remove_offline_radios(radio_terminal_dict):
 
 def terminal_write_blacklist(bl_path, bl_name):
     """ return True on success,
-    write blacklist if not exists, else update it with new radio names
+    write blacklist if not exists, else update blacklist dict with new radio names
     """
     path = os.path.join(bl_path, bl_name)
     if not Pathlib_path(path).is_file():
@@ -995,17 +980,38 @@ def terminal_blacklist_enable(blacklist_name):
        writes the blacklist file name to the api, blacklist writer can update file
        starts the blacklist writer daemon
      """
-    settings_dir = ghetto_menu.terminal_record_settings_dir_get()
-    blacklist_written = terminal_write_blacklist(settings_dir, blacklist_name)
+    blacklist_dir = ghettoApi.blacklist_dir
+    blacklist_written = terminal_write_blacklist(blacklist_dir, blacklist_name)
     if blacklist_written:
         # return also ok if file exists
-        with open(os.path.join(settings_dir, blacklist_name), "r") as reader:
+        with open(os.path.join(blacklist_dir, blacklist_name), "r") as reader:
             bl_json_dict = reader.read()
         # write dict to api, each recorder can compare titles of its radio, convert string to dict
         ghettoApi.all_blacklists_dict = json.loads(bl_json_dict)
-        ghettoApi.init_path_ghetto_blacklist(os.path.join(settings_dir, blacklist_name))
         ghetto_blacklist.start_ghetto_blacklist_writer_daemon()
     return
+
+
+def terminal_blacklist():
+    """ master of command line blacklist functions """
+    record_with_blacklist = ghetto_menu.terminal_record_blacklist_enabled_get()
+    blacklist_enabled = True if record_with_blacklist.lower() == "true" else False
+    ghettoApi.blacklist_enable = True if blacklist_enabled else False
+    if blacklist_enabled:
+        terminal_blacklist_enable(GBase.terminal_blacklist_name)
+
+
+def terminal_init():
+    """ prepare env for all terminal modules and functions """
+    GBase.terminal_run = True
+    config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    ghettoApi.init_config_dir(config_dir)
+    ghettoApi.init_blacklist_dir(config_dir)
+    ghettoApi.init_blacklist_name(GBase.terminal_blacklist_name)
+    ghettoApi.init_blacklist_enable(None)
+    ghettoApi.init_config_name(GBase.config_name)
+    ghettoApi.init_radio_parent(GBase.radio_parent)
+    ghetto_container.container_setup()
 
 
 def signal_handler(sig, frame):
@@ -1014,7 +1020,7 @@ def signal_handler(sig, frame):
      GBase.dict_exit[str_radio]
      GRecorder.record_active_dict[radio]
      """
-    for radio in GBase.terminal_radio_list:
+    for radio in GRecorder.record_active_dict.keys():
         GRecorder.record_active_dict[radio] = False
         GBase.dict_exit[radio] = True
     ghettoApi.stop_blacklist_writer = True
@@ -1030,26 +1036,19 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def terminal_main():
     """ command line version (GhettoRecorder package) with a menu, settings.ini and blacklist, no database
-    functions for command line start with 'terminal_'
+    functions for command line start with 'terminal'
 
-    Modules for command line, THE GhettoRecorder
+    Additional command line Modules , THE GhettoRecorder app
        ghetto_blacklist.py - blacklist writer updates json file and ghettoApi for recorder to find old titles'
        ghetto_container.py - prepare for user interaction in container env
+       ghetto_http_srv.py  - listen from recorded stream with browser on local port
        ghetto_ini.py       - reads, updates sections ([GLOBAL]) in settings.ini config file
        ghetto_menu.py      - display config file content, calls ghetto_ini to update settings for path and blacklist
-       ghetto_recorder.py  - main module, GBase.radio_base_dir pulled from ghetto_ini to avoid circular import
-       ghettoApi           - reuse methods of Eisenradio to avoid import problems, push blacklist name ..., __init__.py
+       api.py              - 3rd party module, needs refactoring, expose attribute and functions to modules
        settings.ini        - configuration file
 
-    Record_path
-       one, same folder as this module
-       two, path from [GLOBAL] setting
-       three, container path
-       four, set path from menu option
-       terminal_custom_record_path_get() set GBase.radio_base_dir and shows in menu;
-
     Container
-       the Python package is already deployed in a docker or snap container, prepare for user interaction
+       used if the Python package is already deployed in a docker or snap container, prepare for user interaction
 
     Threads
        metadata thread extracts titles in intervals,
@@ -1060,25 +1059,26 @@ def terminal_main():
        Name, "blacklist.json", a json dictionary
        "ghettoApi.all_blacklists_dict[str_radio]" - update_radios_blacklists()" feeds api with the blacklist for a radio
        "ghettoApi.blacklist_enabled_global" - blacklist_enabled, is set in terminal_main, if set recorder refuses copy
+
+    Path options
+       GR module path if no [GLOBAL] in config,
+       path typed in config path option used, if no [GLOBAL] in that config
+       path of [GLOBAL] in config; master
+       can type a path to config and then files are stored in that path or if [GLOBAL] is set use path from there
     """
-    GBase.terminal_run = True  # we run in a terminal window
-    blacklist_dict = GBase.terminal_blacklist_name
-    is_container = ghetto_container.container_setup_use()
-    if is_container:
-        print(f".. created default record path for container")
-    # show main menu and collect radios or update config file, if record is selected we proceed
+    terminal_init()
+    # show main menu and collect radios or update config file, if record is selected we proceed with the radios
     ghetto_menu.menu_main()
-    radio_terminal_dict = ghetto_menu.record_read_radios()
-    terminal_remove_offline_radios(radio_terminal_dict)
+    terminal_radio_dict = ghetto_menu.record_read_radios()
+    terminal_remove_offline_radios(terminal_radio_dict)
+    terminal_blacklist()
+    remote_dir = ghettoApi.save_to_dir
+    if remote_dir is not None:
+        GBase.radio_base_dir = str(Pathlib_path(os.path.join(ghettoApi.save_to_dir, ghettoApi.radio_parent)))
+    else:
+        GBase.radio_base_dir = str(Pathlib_path(os.path.join(ghettoApi.config_dir, ghettoApi.radio_parent)))
 
-    record_with_blacklist = ghetto_menu.terminal_record_blacklist_enabled_get()
-    blacklist_enabled = True if record_with_blacklist.lower() == "true" else False
-    ghettoApi.blacklist_enabled_global = True if blacklist_enabled else False
-    if blacklist_enabled:
-        terminal_blacklist_enable(blacklist_dict)
-
-    # radio_base_dir for terminal mode set in record()
-    terminal_feed_record(radio_terminal_dict)
+    terminal_feed_record(terminal_radio_dict)
     terminal_main_thread_loop()
 
 
