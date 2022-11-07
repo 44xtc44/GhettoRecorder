@@ -20,10 +20,9 @@ Methods
    terminal_record_parent_dir_get()  - return GIni.radio_base_dir, parent folder
    terminal_record_custom_path_get() - called by ghetto_recorder module, config is called at radio choice in main menu
    terminal_record_blacklist_enabled_get() - called by ghetto_recorder module, enable api variable
-   terminal_record_settings_dir_get() - called by ghetto_recorder module to write blacklist beside settings.ini
    terminal_record_all_radios_get() - called by ghetto_recorder module to write blacklist beside settings.ini
    path_change() - call menu_path(), Change record parent path
-   parent_record_path_change() - store path in [GLOBAL], test if path is writeable, init GIni.global_config_get()
+   parent_record_path_change() - store path in [GLOBAL], test if path is writeable
    path_validate_input(custom_path) - return True if path is valid
    blacklist()                      - Enable/disable blacklists
    blacklist_is_enabled()           - Write a new blacklist option to settings.ini file
@@ -32,7 +31,9 @@ Methods
    remove_special_chars(str_name)   - clean radio name to create a folder
 """
 import os
+from pathlib import Path as Pathlib_path
 from aacrepair import AacRepair
+from ghettorecorder.api import ghettoApi
 from ghettorecorder.ghetto_ini import GIni
 
 
@@ -79,7 +80,7 @@ def menu_main():
 
 def menu_path():
     menu_options = {
-        1: 'New parent path for recorded radios. Write to config.',
+        1: 'Write to config. Parent path for recorded radios.',
         2: 'Back to Main Menu',
     }
 
@@ -103,7 +104,7 @@ def menu_path():
 
 
 def menu_blacklist():
-    GIni.global_config_get(print_config=True)
+    GIni.global_config_show()
     menu_options = {
         1: "blacklist on (don't write title if already downloaded)",
         2: 'blacklist off',
@@ -133,6 +134,7 @@ def menu_blacklist():
 
 
 def menu_find_config():
+    GIni.global_config_show()
     menu_options = {
         1: 'Path to "setting.ini" and "blacklist.json"',
         2: 'Back to Main Menu',
@@ -158,21 +160,25 @@ def menu_find_config():
 
 
 def record():
-    """ init all dicts in ghetto_ini.GIni, show the list of radios to choose from
+    """ show all options if True, else fail brutal to retrieve the error message
+    init all dicts in ghetto_ini.GIni, show the list of radios to choose from
 
     Functions
-       GIni.record_path_test()    - test if configparser can read config file
-       GIni.global_config_get(print_config=True) - fill path vars,
+       GIni.config_path_test()    - test if configparser can read config file
+       GIni.global_config_show()  - [GLOBAL] settings.ini vars
+       GIni.global_config_push()  - read in [GLOBAL] settings.ini vars
        GIni.show_items_ini_file() - show the main menu headline and description
     """
     print('\toption \'record\'')
     if record_path_get():
-        GIni.global_config_get(print_config=True)
         GIni.show_items_ini_file()
+        print(f'\n.. config file in {ghettoApi.config_dir}')
+        if GIni.global_config_show():
+            GIni.global_config_push()
 
 
 def record_path_get():
-    if not GIni.record_path_test():
+    if not GIni.config_path_test():
         return False
     return True
 
@@ -211,10 +217,10 @@ def record_read_radios():
                 record_create_folder_radio_name(radio_dir_name)
             break
 
-        elif (len(radio_list) == 0) and (len(radio_name) == 0):
+        elif (not len(radio_list)) and (not len(radio_name)):
             print("nothing to do, next try ...")
             menu_main()
-        elif (len(radio_list) > 0) and (len(radio_name) == 0):
+        elif (len(radio_list) > 0) and (not len(radio_name)):
             # list is filled with valid inputs, record starts with empty input
             print(f".. got the radio list: {list(set(radio_list))}")
             break
@@ -274,42 +280,34 @@ def record_create_radio_url_dict(radio_name):
 
 
 def record_create_folder_radio_name(radio_name):
-    """ create parent folder and radio child folder """
-    parent_dir = GIni.radio_base_dir
-    custom_dir = terminal_record_global_custom_path_get()
-    path = os.path.join(custom_dir, parent_dir, radio_name)
+    """ create parent folder and radio child folders either in dir with config files or in [GLOBAL] remote dir """
+    remote_dir = ghettoApi.save_to_dir
+    if remote_dir is not None:
+        save_path = str(Pathlib_path(os.path.join(ghettoApi.save_to_dir, ghettoApi.radio_parent)))
+    else:
+        save_path = str(Pathlib_path(os.path.join(ghettoApi.config_dir, ghettoApi.radio_parent)))
+    path = os.path.join(save_path, radio_name)
+    notes = "♫♪"
+    arrow = "-->"
+
     try:
         os.makedirs(path, exist_ok=True)
-        print(f".. {path}")
+        try:
+            print(f".. {notes} {path}")
+        except UnicodeEncodeError:
+            print(f".. {arrow} {path}")
     except OSError:
         print(f"\t{radio_name} Directory {path} can not be created")
 
 
-def terminal_record_radio_base_dir_get():
-    """ return GIni.radio_base_dir """
-    return GIni.radio_base_dir
-
-
-def terminal_record_global_custom_path_get():
-    """ called by ghetto_recorder module, config is called at radio choice in main menu """
-    return GIni.global_custom_path
-
-
 def terminal_record_blacklist_enabled_get():
-    """ called by ghetto_recorder module, enable api variable """
-    GIni.global_config_get()
-    return GIni.global_custom_blacklist
-
-
-def terminal_record_settings_dir_get():
-    """ called by ghetto_recorder module to write blacklist beside settings.ini """
-    GIni.global_config_get()
-    return GIni.settings_dir
+    """ return True/False, called by ghetto_recorder module """
+    GIni.global_config_show()
+    return ghettoApi.blacklist_enable
 
 
 def terminal_record_all_radios_get():
     """ called by ghetto_recorder module to write blacklist beside settings.ini """
-    GIni.global_config_get()
     return GIni.radio_names_list
 
 
@@ -325,13 +323,13 @@ def parent_record_path_change():
      show old path
         if any, write new one to GLOBAL section, create GLOBAL, if not exists
         test if path is writeable
-        show new path, GIni.global_config_get
+        show new path, GIni.global_config_show
 
      Exception
         we crash, if config file is not in path, writing will fail
      """
-    print('\n\tWrite a new path to store files')
-    GIni.global_config_get(print_config=True)
+    print(f'\n\tWrite a new path to store files\n.. config file in {ghettoApi.config_dir}')
+    GIni.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
         custom_path = line_input.strip()  # to validate the name
@@ -347,7 +345,7 @@ def parent_record_path_change():
                     GIni.global_record_path_write(custom_path)
                 except FileNotFoundError:
                     print("--> error, config file is not there or writeable (check path) - proceed")
-                GIni.global_config_get(print_config=True)
+                GIni.global_config_show()
                 input('Hit Enter to leave -->:')
                 break
             else:
@@ -360,28 +358,34 @@ def config_path_change():
     """ change the path to settings.ini and blacklist.json
 
      show old path
-        if any, write new one to GLOBAL section, create GLOBAL, if not exists
+        write new path to [GLOBAL] section, create [GLOBAL], if not exists
         test if path is writeable
-        show new path, GIni.global_config_get()
+        show new path, GIni.global_config_show()
      """
-    print('\n\tType path to folder with settings.ini and blacklist.json (used for radio sub directories)')
-    GIni.global_config_get()
+    print(f'\n\tType path to folder with settings.ini and blacklist.json (used for radio sub directories)'
+          f'\n.. config file in {ghettoApi.config_dir}')
+    GIni.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
-        custom_path = line_input.strip()  # to validate the name
+        config_files_dir = line_input.strip()  # to validate the name
 
-        if not len(custom_path):
+        if not len(config_files_dir):
             print("nothing to do ...")
             menu_main()
             break
         else:
-            is_valid = path_validate_input(custom_path)
-            if is_valid:
-                GIni.config_path_write(custom_path)
-                GIni.global_config_get(print_config=True)
+            old_config_dir = ghettoApi.config_dir
+            ghettoApi.config_dir = config_files_dir
+            has_config = record_path_get()
+            is_valid = path_validate_input(config_files_dir)
+            if is_valid and has_config:
+                GIni.config_path_set(config_files_dir)
+                GIni.global_config_show()
                 input('Hit Enter to leave -->:')
                 break
             else:
+                ghettoApi.config_dir = old_config_dir
+                print(f'Not valid. Directory writeable: {is_valid}, has config: {has_config}')
                 input_exit = input('Hit Enter to try again, or "E" to leave -->:')
                 if (input_exit == "E") or (input_exit == "E".lower()):
                     break
@@ -391,7 +395,7 @@ def path_validate_input(custom_path):
     """ return True if path is valid """
     try:
         os.makedirs(custom_path, exist_ok=True)
-        print(f"\tcreated: {custom_path}")
+        print(f".. path: {custom_path}")
     except OSError:
         print(f"\tDirectory {custom_path} can not be created")
         return False
@@ -406,7 +410,8 @@ def blacklist():
 
 def blacklist_is_enabled():
     """ Write a new blacklist option to settings.ini file """
-    print('\n\tWrite a new blacklist option to settings.ini file')
+    print('\n\tWrite a new blacklist option to settings.ini file'
+          f'\n.. config file in {ghettoApi.config_dir}')
     menu_blacklist()
 
 
@@ -416,7 +421,7 @@ def blacklist_on():
           '\n\tExisting titles are not recorded again and again.'
           '\nfile name is "blacklist.json" in the same folder as "settings.ini"')
     GIni.global_blacklist_enable_write("True")
-    GIni.global_config_get(print_config=True)
+    GIni.global_config_show()
     input('Hit Enter to leave -->:')
 
 
@@ -424,7 +429,7 @@ def blacklist_off():
     """ write disabled to config file """
     print('\n\tblacklist is OFF: settings.ini file')
     GIni.global_blacklist_enable_write("False")
-    GIni.global_config_get(print_config=True)
+    GIni.global_config_show()
     input('Hit Enter to leave -->:')
 
 
@@ -432,7 +437,7 @@ def aac_file_repair():
     """
     """
     print('\n\tWrite a path to aac files. Only aac files will be touched.')
-    GIni.global_config_get(print_config=True)
+    GIni.global_config_show()
     while True:
         line_input = input('Enter a path, OS syntax (f:\\10 or /home ) -->:')
         aac_path = line_input.strip()  # to validate the name
