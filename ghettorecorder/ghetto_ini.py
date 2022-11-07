@@ -4,56 +4,46 @@ settings.ini file
 import os
 import configparser
 from pathlib import Path as Pathlib_path
+from ghettorecorder.api import ghettoApi
 
 
 class GIni:
-    """ config file for command line 'settings.ini'
+    """ ONLY command line; 'settings.ini' config
     choice of radios can be made via list index number or name of the radio
 
     Dictionaries
        radio_names_list = []  . list to search radio name via character
-       radio_base_dir                . recorder parent dir
-       settings_path                 . full path name of config file
-       settings_dir                  . dir path of config file
        config_stations = {}          . radio, url pairs from [STATIONS] section
        config_global = {}            . extra infos from [GLOBAL] section, SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
-       global_custom_path = ""       . custom parent directory for records elsewhere
-       global_custom_blacklist = ""  . blacklist feature on/off
 
     Methods
        show_items_ini_file() . show the content of the ini file to choose from, fill radio_names_list,radio_names_dict
-       record_path_test()    . look if we can read the config file
-       global_config_get(print_config=False) . extract GLOBAL section from settings.ini
+       config_path_test()    . look if we can read the config file
+       blacklist_path_set()  . config_path_test success, set blacklist path to settings.ini path
+       global_config_show(print_config=False) . extract GLOBAL section from settings.ini
        global_record_path_write(custom_path) . SAVE_TO_DIR = f:/2
        global_blacklist_enable_write(option) . BLACKLIST_ENABLE = True
-
+       config_path_set(config_files_dir)     . on config path change (menu) set blacklist path to settings.ini path
      """
 
     radio_names_list = []  # search radio name via character
-    radio_base_dir = "radios"
-    this_module_path = os.path.dirname(os.path.abspath(__file__))
-    settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.ini")
-    settings_dir = os.path.dirname(settings_path)
-    config_stations = {}  # radio, url pairs
-    config_global = {}  # extra infos like different path SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
-    # custom parent directory for records;
-    # use menu option set path, or [GLOBAL] path in config file, or change from external module directly
-    global_custom_path = settings_dir
-    global_custom_blacklist = ""  # blacklist feature 'True' or 'False'
+    logo_path = os.path.dirname(os.path.abspath(__file__))  # print ghettorecorder logo to screen
+    config_stations = {}  # config section [STATIONS] radio, url pairs
+    config_global = {}    # config section [STATIONS] extra infos SAVE_TO_DIR = f:\2, BLACKLIST_ENABLE = True
 
     @staticmethod
     def show_items_ini_file():
         """ show the content of the ini file to choose from
         fill radio_names_list and radio_names_dict to later validate the choice
          """
-        config = GIni.record_path_test()
+        config = GIni.config_path_test()
         try:
             GIni.config_stations = dict(config.items('STATIONS'))
         except AttributeError:
             print("--> GIni.show_items_ini_file(), can not find configuration section [STATIONS] - proceed")
             return
 
-        with open(os.path.join(GIni.this_module_path, "ghetto_recorder.ascii"), "r") as reader:
+        with open(os.path.join(GIni.logo_path, "ghetto_recorder.ascii"), "r") as reader:
             print(reader.read())
 
         GIni.radio_names_list = []
@@ -72,29 +62,38 @@ class GIni:
         return
 
     @staticmethod
-    def record_path_test():
-        config = configparser.ConfigParser()  # imported library to work with .ini files
+    def config_path_test():
+        config = configparser.ConfigParser()  # instantiate imported library to work with .ini files
         try:
-            config.read_file(open(GIni.settings_path))
-            # print(f"OK, settings.ini found")
-        except FileNotFoundError as error:
-            print(f"--> no config found, \nExport 'Names and URLs' from database to create a settings.ini,\n  {error}")
+            config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+            config.read_file(open(config_file_path))
+        except OSError:
             return False
         else:
+            # GIni.blacklist_path_set()
             return config
 
     @staticmethod
-    def global_config_get(print_config=False):
-        """ extract GLOBAL section from settings.ini, if available
+    def blacklist_path_set():
+        """ set path to blacklist for blacklist writer
+
+        Info:
+           store info of config folder path, prevent writing blacklist in SAVE_TO_DIR folder
+        """
+        ghettoApi.blacklist_dir = ghettoApi.config_dir
+
+    @staticmethod
+    def global_config_show():
+        """ extract [GLOBAL] section from settings.ini, if available
         GLOBAL can be - not there, empty, or with values (test case)
 
         Method
-           GIni.record_path_test() - exit if no path
+           GIni.config_path_test() - exit if no path
 
         Raise
-           show that there is no config, but can proceed without (GIni.record_path_test(), ok)
+           show that there is no config, but can proceed without (GIni.config_path_test(), ok)
         """
-        config = GIni.record_path_test()
+        config = GIni.config_path_test()
         if config:
             try:
                 GIni.config_global = dict(config.items('GLOBAL'))
@@ -102,17 +101,39 @@ class GIni:
                 print(f'Config found, minor error: {error} - proceed')
                 return True
 
-            if len(GIni.config_global) == 0:
+            if not len(GIni.config_global):
                 print("--> section [GLOBAL] is empty. No blacklist, or record path set.")
                 return True
             else:
-                if print_config:
-                    print(f'..settings.ini [GLOBAL] section: {GIni.config_global}')
+                print(f'.. settings.ini [GLOBAL] section: {GIni.config_global}')
+                return True
+
+    @staticmethod
+    def global_config_push():
+        """ return True if [GLOBAL] section exists and has settings
+        push setting of [GLOBAL] section from settings.ini in variables,
+
+        Raise
+           show that there is no config, but can proceed without (GIni.config_path_test(), ok)
+        """
+        config = GIni.config_path_test()
+        if config:
+            try:
+                GIni.config_global = dict(config.items('GLOBAL'))
+            except Exception as error:
+                print(f'Config found, minor error: {error} - proceed')
+                return False
+
+            if not len(GIni.config_global):
+                print("--> section [GLOBAL] is empty. No blacklist, or record path set.")
+                return False
+            else:
                 for key, val in GIni.config_global.items():
                     if key == "SAVE_TO_DIR".lower():
-                        GIni.global_custom_path = val
+                        # push path from [GLOBAL]
+                        ghettoApi.save_to_dir = val
                     if key == "BLACKLIST_ENABLE".lower():
-                        GIni.global_custom_blacklist = val
+                        ghettoApi.blacklist_enable = val
                 return True
 
     @staticmethod
@@ -122,12 +143,13 @@ class GIni:
         SAVE_TO_DIR = f:/2
         """
         config = configparser.ConfigParser()
-        config.read_file(open(GIni.settings_path))
+        config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+        config.read_file(open(config_file_path))
         config.sections()
         if "GLOBAL" not in config:
             config.add_section('GLOBAL')
         config.set('GLOBAL', 'SAVE_TO_DIR', str(Pathlib_path(custom_path)))  # help to write path for OS
-        with open(GIni.settings_path, 'w') as configfile:
+        with open(config_file_path, 'w') as configfile:
             config.write(configfile)
 
     @staticmethod
@@ -137,22 +159,22 @@ class GIni:
         BLACKLIST_ENABLE = True
         """
         config = configparser.ConfigParser()
-        config.read_file(open(GIni.settings_path))
+        config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+        config.read_file(open(config_file_path))
         config.sections()
         if "GLOBAL" not in config:
             config.add_section('GLOBAL')
         config.set('GLOBAL', 'BLACKLIST_ENABLE', option)
-        with open(GIni.settings_path, 'w') as configfile:
+        with open(config_file_path, 'w') as configfile:
             config.write(configfile)
 
     @staticmethod
-    def config_path_write(custom_path):
-        """ find settings.ini and blacklist.json, write path variables to screen.
-        Used, if config file is not in the same folder as the main module (ghetto_recorder).
+    def config_path_set(config_files_dir):
+        """ Menu 'Set path to config, settings.ini'
+        set path to a 'remote' config file (local fs, writable network location)
 
-        Menu
-           'Set path to config, settings.ini'
+        Hint
+           can have config somewhere and write to save_to_dir path elsewhere, if this option is used
         """
-        path = str(Pathlib_path(custom_path))
-        GIni.settings_path = os.path.join(path, "settings.ini")
-        GIni.global_custom_path = path
+        ghettoApi.config_dir = str(Pathlib_path(config_files_dir))
+        ghettoApi.blacklist_dir = str(Pathlib_path(config_files_dir))
