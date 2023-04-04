@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GhettoRecorder"
-version = "2.4.6"
+version = "2.4.7"
 description = "command line internet radio grabber with listen capabilities"
 keywords = ['aac recovery', 'aac repair',]
 license = {file = "LICENSE.rst"}
 readme = "README.rst"
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 dynamic = ['authors',]
 classifiers = [
     "Programming Language :: Python :: 3",
