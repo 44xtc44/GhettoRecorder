@@ -4,7 +4,7 @@ settings.ini file
 import os
 import configparser
 from pathlib import Path as Pathlib_path
-from ghettorecorder.api import ghettoApi
+from ghettorecorder.ghetto_api import ghettoApi
 
 
 class GIni:
@@ -64,10 +64,12 @@ class GIni:
     @staticmethod
     def config_path_test():
         config = configparser.ConfigParser()  # instantiate imported library to work with .ini files
+        config_file_path = 'not avail'
         try:
-            config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+            config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
             config.read_file(open(config_file_path))
         except OSError:
+            print(f'OSError in config_path_test {config_file_path}')
             return False
         else:
             # GIni.blacklist_path_set()
@@ -80,7 +82,7 @@ class GIni:
         Info:
            store info of config folder path, prevent writing blacklist in SAVE_TO_DIR folder
         """
-        ghettoApi.blacklist_dir = ghettoApi.config_dir
+        ghettoApi.blacklist.blacklist_dir = ghettoApi.path.config_dir
 
     @staticmethod
     def global_config_show():
@@ -109,6 +111,17 @@ class GIni:
                 return True
 
     @staticmethod
+    def global_config_get():
+        """"""
+        config = GIni.config_path_test()
+        if config:
+            try:
+                return dict(config.items('GLOBAL'))
+            except Exception as error:
+                print(f'Config found, minor error: {error} - proceed')
+                return False
+
+    @staticmethod
     def global_config_push():
         """ return True if [GLOBAL] section exists and has settings
         push setting of [GLOBAL] section from settings.ini in variables,
@@ -131,9 +144,9 @@ class GIni:
                 for key, val in GIni.config_global.items():
                     if key == "SAVE_TO_DIR".lower():
                         # push path from [GLOBAL]
-                        ghettoApi.save_to_dir = val
+                        ghettoApi.path.save_to_dir = val
                     if key == "BLACKLIST_ENABLE".lower():
-                        ghettoApi.blacklist_enable = val
+                        ghettoApi.blacklist.blacklist_enable = val
                 return True
 
     @staticmethod
@@ -143,7 +156,7 @@ class GIni:
         SAVE_TO_DIR = f:/2
         """
         config = configparser.ConfigParser()
-        config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+        config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
         config.read_file(open(config_file_path))
         config.sections()
         if "GLOBAL" not in config:
@@ -159,7 +172,7 @@ class GIni:
         BLACKLIST_ENABLE = True
         """
         config = configparser.ConfigParser()
-        config_file_path = os.path.join(ghettoApi.config_dir, ghettoApi.config_name)
+        config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
         config.read_file(open(config_file_path))
         config.sections()
         if "GLOBAL" not in config:
@@ -176,5 +189,5 @@ class GIni:
         Hint
            can have config somewhere and write to save_to_dir path elsewhere, if this option is used
         """
-        ghettoApi.config_dir = str(Pathlib_path(config_files_dir))
-        ghettoApi.blacklist_dir = str(Pathlib_path(config_files_dir))
+        ghettoApi.path.config_dir = str(Pathlib_path(config_files_dir))
+        ghettoApi.blacklist.blacklist_dir = str(Pathlib_path(config_files_dir))
