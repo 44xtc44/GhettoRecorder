@@ -1,5 +1,9 @@
 Documentation - GhettoRecorder
 ==============================
+.. image:: https://github.com/44xtc44/ghettorecorder/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/44xtc44/ghettorecorder/actions/workflows/tests.yml
+
+
 command line internet radio grabber with listen capabilities
 
 Info
