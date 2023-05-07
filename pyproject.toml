@@ -33,7 +33,3 @@ repository = "https://github.com/44xtc44/GhettoRecorder"
 
 [project.scripts]
 ghettorecorder = "ghettorecorder.cmd:main"
-
-[tool.pytest.ini_options]
-addopts = "--cov=."
-testpaths = "."
