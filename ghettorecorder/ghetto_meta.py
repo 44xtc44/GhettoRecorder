@@ -1,172 +1,213 @@
+"""Extract title information from metadata response.
 
+:methods: meta_get: returns a full path for file dump #
+:methods: title_path_build: build the path #
+:methods: metadata_request: request one chunk of title info #
+:methods: metadata_header_info: write header info to API for other modules to use #
+:methods: metadata_icy_info: extract binary meta info from response #
+:methods: metadata_get_display_extract: convert to string and clean it
+:methods: metadata_get_display_info: pre switch to filter out titles from u nreliable and wrong metadata responses
+:methods: remove_special_chars: clean string for writing on OS fs
+"""
+
+import os
 import ssl
 import time
+import urllib
+import urllib.error
 import certifi
+from collections import namedtuple
 from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
-from ghettorecorder.api import ghettoApi
+
+import ghettorecorder.ghetto_utils as ghetto_utils
+from ghettorecorder.ghetto_api import ghettoApi
+
+os.environ['SSL_CERT_FILE'] = certifi.where()
 context_ssl = ssl.create_default_context(cafile=certifi.where())
 
 
-class GMeta:
+class MetaData:
+    """Collect Metadata titles. Titles are used as filenames.
+    Header information collected as service for 3rd party modules.
+
     """
 
-    Dictionaries:
-        ghetto_measure = {}     - header information dump and request time measure
-        ghettoApi.init_ghetto_measurements(ghetto_measure)
+    def __init__(self):
+        self.title = None
+        self.title_path = None
+        self.header_info_dict = {}
 
-    Methods:
-        metadata_request(url) - pull the metadata by telling server {'Icy-MetaData' "is" '1'}, get binary data content
-        metadata_header_info(request, str_radio, request_time) - fill dict with header information to display values
-        metadata_icy_info(request, str_radio) - return raw byte code metadata from radio
-        metadata_get_display_extract(icy_info) - return cleaned up metadata tile
-        metadata_get_display_info(icy_info) - extract readable title data to show it on html page
-     """
-    ghetto_measure = {}  # header information dump and request time measure
-    ghettoApi.init_ghetto_measurements(ghetto_measure)
+    def metadata_header_info(self, request, str_radio, request_time, bit_rate):
+        """Fill dict with header information to display values/information about radio on html page
 
-    @staticmethod
-    def metadata_request(url):
-        """ pull the metadata by telling server request.add_header('Icy-MetaData', '1'),
-        get binary data block with metadata content
+        :params: request: icy request
+        :params: str_radio: radio
+        :params: request_time: time of request duration
         """
-        request = Request(url)
-        request.add_header('Icy-MetaData', '1')
+        HeaderInfo = namedtuple('HeaderInfo', "request_time content_type icy_br icy_name icy_genre icy_url")
+        header = HeaderInfo(request_time,
+                            validate_header_data(request.headers['content-type']),
+                            bit_rate,
+                            validate_header_data(request.headers['icy-name']),
+                            validate_header_data(request.headers['icy-genre']),
+                            validate_header_data(request.headers['icy-url']),
+                            )
+        ghettoApi.info.header_dict[str_radio] = header
+        return self.header_info_dict
+
+    def meta_get(self, url, str_radio, radio_dir, stream_suffix, bit_rate, user_agent):
+        """Receive and process metadata. Prone to UrlError Timeout.
+
+        :exception: if metadata corrupt or connection
+        :returns: Exception object to deal
+        :params: url: url
+        :params: str_radio: name of radio
+        :params: radio_dir: absolute path to radio dir
+        :params: stream_suffix: file suffix of stream
+        :params: user_agent: random agent
+        :returns: absolute path to file and the title
+        :rtype: str
+        """
+        start_time = time.perf_counter()
+        response = metadata_request(url, user_agent)
+        request_time = round((time.perf_counter() - start_time) * 1000)
+        if not response:
+            return
+
+        try:
+            self.metadata_header_info(response, str_radio, request_time, bit_rate)
+            icy_info = metadata_icy_info(response, str_radio)
+            self.title_path, self.title = title_path_build(icy_info, url, radio_dir, stream_suffix)
+        except AttributeError:
+            return AttributeError  # minor
+        except Exception as e:
+            print(f' ---> meta_get() {str_radio}, exception info: {type(e).__name__} , {url}')
+
+
+def validate_header_data(value):
+    """return either value or empty string for Java or Html
+    """
+    try:
+        return value
+    except KeyError:
+        return ''
+
+
+def title_path_build(icy_info, url, radio_dir, stream_suffix):
+    """Absolute Path from strings builder.
+
+    :params: icy_info: pre cleaned title string
+    :params: url: url
+    :params: radio_dir: absolute path to radio dir
+    :params: stream_suffix: file suffix of stream
+    :rtype: str
+    """
+    title_raw = metadata_get_display_info(icy_info)
+    if title_raw:
+        try:
+            if title_raw[0] == "'" and title_raw[-1] == "'":
+                title_raw = title_raw[1:-1]
+            title_blank = ghetto_utils.remove_special_chars(title_raw)
+            title = title_blank.strip()
+            title_path = os.path.join(radio_dir, title + stream_suffix)
+        except Exception as error:
+            print(f' ---> title_path_build, exception info: {error} , {url}')
+            return False
+        return title_path, title
+
+
+def metadata_request(url, user_agent):
+    """ pull the metadata by telling server request.add_header('Icy-MetaData', '1'),
+    get binary data block with metadata content
+
+    :params: url: url
+    :rtype: response
+    """
+    request = Request(url)
+    request.add_header('Icy-MetaData', '1')
+    opener = urllib.request.build_opener()
+    opener.addheaders = [('User-agent', user_agent)]  # user agent only wants opener
+    urllib.request.install_opener(opener)
+    try:
         response = urlopen(request, timeout=15, context=context_ssl)
         return response
+    except TimeoutError:
+        print('TimeoutError in metadata_request() retry.')
+        return False
+    except OSError:
+        pass  # URLError subclass, short timeout
+    except Exception as error:
+        print(f'unknown error in metadata_request() {error} exception info: {type(error).__name__} ')
+        return False
 
-    @staticmethod
-    def metadata_header_info(request, str_radio, request_time):
-        """ fill dict with header information to display values/information about radio on html page
-        'GRecorder.ghetto_measure[str_radio + ',request_time']'
-        """
-        try:
-            GMeta.ghetto_measure[str_radio + ',request_time'] = request_time
-        except KeyError:
-            pass
-        try:
-            GMeta.ghetto_measure[str_radio + ',suffix'] = request.headers['content-type']
-        except KeyError:
-            pass
-        try:
-            GMeta.ghetto_measure[str_radio + ",icy_br"] = request.headers["icy-br"]
-        except KeyError:
-            pass
-        try:
-            GMeta.ghetto_measure[str_radio + ",icy_name"] = request.headers["icy-name"]
-        except KeyError:
-            pass
-        try:
-            GMeta.ghetto_measure[str_radio + ",icy_genre"] = request.headers["icy-genre"]
-        except KeyError:
-            pass
-        try:
-            GMeta.ghetto_measure[str_radio + ",icy_url"] = request.headers["icy-url"]
-        except KeyError:
-            pass
 
-    @staticmethod
-    def metadata_icy_info(request, str_radio):
-        """ returns raw byte code metadata from radio
+def metadata_icy_info(request, str_radio):
+    """Returns raw byte code metadata from radio.
+    Find start byte, convert to int, find out bytes to read, read block of bytes
+    return a byte code error message on unknown error.
 
-        find start byte, convert to int, find out bytes to read, read block of bytes
-        return a byte code error message on unknown error
-        """
-        try:
-            icy_meta_int = int(request.headers['icy-metaint'])
-            request.read(icy_meta_int)
-            start_byte = request.read(1)
-            start_int = ord(start_byte)
-            num_of_bytes = start_int * 16
-            metadata_content = request.read(num_of_bytes)
-            return metadata_content
-        except Exception as error:
-            message = f'metadata_icy_info(), {str_radio}: no or false metadata; {error}'
-            print(message)
-            # caller expects byte
-            return b"StreamTitle='GhettoRecorder module info\n" \
-                   b"radio returns no or false metadata including title and stream url\n" \
-                   b"radio service is active on url and port, since I am not crashed, check url part after port\n" \
-                   b"recording without titles if stream is active at all';StreamUrl='';\x00\x00"
+    :params: request: request
+    :params: str_radio: name
+    :returns: string of title
+    :rtype: bytes
+    """
+    try:
+        icy_meta_int = int(request.headers['icy-metaint'])
+        request.read(icy_meta_int)
+        start_byte = request.read(1)
+        start_int = ord(start_byte)
+        num_of_bytes = start_int * 16
+        metadata_content = request.read(num_of_bytes)
+        return metadata_content
+    except Exception as error:
+        message = f'metadata_icy_info(), {str_radio}: no or false metadata; {error}'
+        print(message)
+        # caller expects byte
+        return b"StreamTitle='GhettoRecorder module info\n" \
+               b"radio returns no or false metadata including title and stream url\n" \
+               b"radio service is active on url and port, since I am not crashed, check url part after port\n" \
+               b"recording without titles if stream is active at all';StreamUrl='';\x00\x00"
 
-    @staticmethod
-    def metadata_get_display_extract(icy_info):
-        """ return cleaned up metadata tile """
-        # StreamTitle='X-Dream - Panic In Paradise * anima.sknt.ru';StreamUrl='';
-        try:
-            title_list = icy_info.split(";")
-            if not len(title_list) > 1 or title_list is None:
-                return  # empty list
-            title_list = title_list[0].split("=")
-            title = str(title_list[1])
-            title = GMeta.remove_special_chars(title)
-            if title is not None:
-                return title
-        except IndexError:
-            pass
-        except OSError:
-            pass
-        return
 
-    @staticmethod
-    def metadata_get_display_info(icy_info):
-        """ extract readable title data to show it on html page """
-        # <class 'bytes'> decode to <class 'str'> actually b''
-        try:
-            title = GMeta.metadata_get_display_extract(icy_info.decode('utf-8'))
-            if not title:
-                return
-            if title:
-                return title
-        except AttributeError:
-            """AttributeError: Server sends no metadata; bool value instead"""
+def metadata_get_display_extract(icy_info):
+    """ return cleaned up metadata tile
+
+    :params: icy_info: bytes string
+    :rtype: str
+    """
+    # StreamTitle='X-Dream - Panic In Paradise * anima.sknt.ru';StreamUrl='';
+    try:
+        title_list = icy_info.split(";")
+        if not len(title_list) > 1 or title_list is None:
+            return  # empty list
+        title_list = title_list[0].split("=")
+        title = str(title_list[1])
+        title = ghetto_utils.remove_special_chars(title)
+        if title is not None:
+            return title
+    except IndexError:
+        pass
+    except OSError:
+        pass
+    return
+
+
+def metadata_get_display_info(icy_info):
+    """ extract readable title data to show it on html page
+
+    :params: icy_info: bytes string
+    :rtype: decoded str
+    """
+    # <class 'bytes'> decode to <class 'str'> actually b''
+    try:
+        title = metadata_get_display_extract(icy_info.decode('utf-8'))
+        if not title:
             return
-        except Exception as error:
-            print(f' Exception in metadata_get_display_info: {error}')
-            return
-
-    @staticmethod
-    def metadata_stream_get(url, str_radio):
-        """ return nothing, from request to clean current_song_dict, recorder "head" can build path with title now
-
-        measures time of response to show network access time
-        "metadata_header_info(response, str_radio, request_time)" - header info to show them on html page
-        "metadata_icy_info(response, str_radio)"                    - call extraction of current title
-        "metadata_get_display_info" - filters out title from unreliable and wrong metadata responses
-        "current_song_dict[str_radio]" - cleaned current title stored in dict for radio as value
-        """
-        icy_info = ''
-        try:
-            start_time = time.perf_counter()
-            response = GMeta.metadata_request(url)
-            request_time = round((time.perf_counter() - start_time) * 1000)
-            GMeta.metadata_header_info(response, str_radio, request_time)
-            icy_info = GMeta.metadata_icy_info(response, str_radio)
-
-        except HTTPError:
-            pass
-        except URLError:
-            """url was checked in is_server_alive. assume short conn error"""
-            pass
-        except Exception as error:
-            print(f' ---> metadata_main {str_radio}, exception info: {error} , {url}')
-            pass
-
-        title = GMeta.metadata_get_display_info(icy_info)
         if title:
-            try:
-                if title[0] == "'" and title[-1] == "'":
-                    ghettoApi.current_song_dict[str_radio] = title[1:-1]  # |sequence, ex 0 and last char |0 |1 |²2
-                else:
-                    ghettoApi.current_song_dict[str_radio] = title
-            except KeyError:
-                pass
-            except Exception as error:
-                print(f' ---> metadata_get_display_info {str_radio}, exception info: {error} , {url}')
-                pass
-
-    @staticmethod
-    def remove_special_chars(str_name):
-        """ remove special characters for writing to file system """
-        ret_value = str_name.translate({ord(string): "" for string in '"!@#$%^*()[]{};:,./<>?\\|`~=+"""'})
-        return ret_value
+            return title
+    except AttributeError:
+        """AttributeError: Server sends no metadata; bool value instead"""
+        return
+    except Exception as error:
+        print(f' Exception in metadata_get_display_info: {error}')
+        return
