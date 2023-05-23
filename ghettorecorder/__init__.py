@@ -11,15 +11,13 @@ import time
 import random
 import certifi
 import threading
-import multiprocessing as mp  # http srv in a process
 from collections import defaultdict  # list as value, return 0 if empty
 
-import ghettorecorder.ghetto_net as ghetto_net
-import ghettorecorder.ghetto_meta as ghetto_meta
-import ghettorecorder.ghetto_utils as ghetto_utils
-import ghettorecorder.ghetto_recorder as ghetto_recorder
-import ghettorecorder.ghetto_db_worker as ghetto_db_worker
-from ghettorecorder.ghetto_api import ghettoApi  # hope to get rid of it
+import ghettorecorder.ghetto_net as net
+import ghettorecorder.ghetto_meta as meta
+import ghettorecorder.ghetto_utils as utils
+import ghettorecorder.ghetto_recorder as recorder
+import ghettorecorder.ghetto_db_worker as db_worker
 from ghettorecorder.ghetto_agents import agent_list
 
 dir_name = os.path.dirname(__file__)  # absolute dir path
@@ -40,7 +38,7 @@ class GhettoRecorder(threading.Thread):
     :params: com_q: requires a named tuple with in out qs, com_q.com_in.put() or com_q.com_out.put()
     """
 
-    def __init__(self, name, url, com_q=None):
+    def __init__(self, name, url):
         super(GhettoRecorder, self).__init__()
 
         # inherited class attributes
@@ -50,7 +48,6 @@ class GhettoRecorder(threading.Thread):
 
         # radio instance attributes
         self.time_stamp = None  # can sort db for active radios since
-        self.com_q = com_q  # named tuple with in out qs, com_q.com_in.put() or com_q.com_out.put()
         self.bit_rate = None
         self.content_type = None
         self.suffix = ""  # inet radio, or local file system file (fake) stream file extension. See ghetto_streamer.
@@ -74,20 +71,16 @@ class GhettoRecorder(threading.Thread):
         self.metadata_thread = self.radio_name + '_' + 'meta'  # metadata worker
         self.worker_aid_thread = self.radio_name + '_' + 'aid'  # restarts worker threads
         self.remote_control_thread = self.radio_name + '_' + 'remote_control'  # exec db orders, stop threads ...
-        self.test_loop_thread = self.radio_name + '_' + 'test_loop'
-        self.worker_threads = [  # shutdown control list; append your feature threads
-            self.recorder_thread,
-            self.metadata_thread,
-            self.worker_aid_thread,
-            self.remote_control_thread,
-            self.test_loop_thread
-        ]
+        self.exec_loop_thread = self.radio_name + '_' + 'exec_loop'
 
         self.shutdown = False
         self.record_stop = False  # kills the recording thread loop
-        self.meta_data_inst = ghetto_meta.MetaData()
-        self.audio_out = None  # connect a queue here to grab response chunks; web server can loop through to a browser
-        self.audio_stream_queue = mp.Queue(maxsize=1)  # mem leak plug, buffer size calc in radio_init() bit_rate_get
+        self.meta_data_inst = meta.MetaData()
+
+        # com ports, creator of instance attach queues
+        self.com_in = None  # rv_tup = (radio, [str 'eval' or 'exec'], str 'command')
+        self.com_out = None  # result
+        self.audio_out = None  # grab response chunks; web server can loop through to a browser
 
         # inbuilt features, switched from other modules
         self.runs_meta = False  # call metadata periodically, create path for rec out; False: recorder is the file
@@ -105,7 +98,6 @@ class GhettoRecorder(threading.Thread):
         """Cancel Thread --> _instance.cancel()"""
         self.shutdown = True
         self.shutdown_recorder()
-        ghetto_utils.thread_shutdown_wait(*self.worker_threads)
         self.cancelled = True  # kill this thread, our instance sits on
 
     def shutdown_recorder(self):
@@ -115,10 +107,10 @@ class GhettoRecorder(threading.Thread):
         """
         if self.runs_meta and self.runs_record:  # else recorder file is the last file
             self.runs_record = False  # chunks discarded
-            ghetto_recorder.teardown(str_radio=self.radio_name,
-                                     bin_writer=self.bin_writer,
-                                     rec_src=self.rec_src,
-                                     rec_dst=self.rec_dst)
+            recorder.teardown(str_radio=self.radio_name,
+                              bin_writer=self.bin_writer,
+                              rec_src=self.rec_src,
+                              rec_dst=self.rec_dst)
         self.runs_meta = False
         self.runs_listen = False
         self.runs_record = False
@@ -132,21 +124,18 @@ class GhettoRecorder(threading.Thread):
         """Init API and instance attributes.
         Leave the radio instance running, on error. To investigate the cause.
         """
-        self.init_ghetto_api()
         if self.resolve_playlist_url() and self.evaluate_response_header():
             self.build_folders()
             self.open_recorder_file()
-            self.init_done = True
-            print(f'  {self.radio_name} init done')
-
             self.start_worker_threads()
+            self.init_done = True
 
     def resolve_playlist_url(self):
         """Some Radios use a deployment system.
         A central server offers valid URLs in a playlist file.
         The 'real' radio server URL. We use the first URL.
         """
-        pls_m3u_resolved = ghetto_net.pls_m3u_resolve_url(self.radio_url)
+        pls_m3u_resolved = net.pls_m3u_resolve_url(self.radio_url)
         if pls_m3u_resolved:
             self.radio_url = pls_m3u_resolved
         else:
@@ -161,40 +150,23 @@ class GhettoRecorder(threading.Thread):
         :exception: file extension of stream not available, keep instance running for error evaluation
         :returns: True; 'None' on error, Main can read error_dict and cancel the thread.
         """
-        response = ghetto_net.load_url(self.radio_url, self.user_agent)
-        if not response:
-            self.error_writer(self.radio_name, f' --->  {self.radio_name} no response.')
-            return
-
         try:
-            self.suffix = ghetto_net.stream_filetype_url(response, self.radio_name)
-        except Exception as unknown_err:
-            self.error_writer(self.radio_name, f' --->  {self.radio_name} {unknown_err}')
+            response = net.load_url(self.radio_url, self.user_agent)
+            self.suffix = net.stream_filetype_url(response, self.radio_name)
+        except Exception as e:
+            self.error_writer(self.radio_name, f' --->  {self.radio_name} no response. {e}')
             return
 
-        self.content_type = ghetto_net.content_type_get(response)
+        self.content_type = net.content_type_get(response)
         br_head = response.headers["icy-br"] if "icy-br" in response.headers.keys() else None
-        br_data = ghetto_net.bit_rate_get(response.read(io.DEFAULT_BUFFER_SIZE), self.suffix)
+        br_data = net.bit_rate_get(response.read(io.DEFAULT_BUFFER_SIZE), self.suffix)
         self.bit_rate = br_data if br_data else (int(br_head) if br_head else None)
         if not self.bit_rate:
             self.error_writer(self.radio_name, 'No bit rate found.')
             return
 
-        self.buf_size = ghetto_net.calc_buffer_size(self.bit_rate)
+        self.buf_size = net.calc_buffer_size(self.bit_rate)
         return True
-
-    def init_ghetto_api(self):
-        """Init API attributes to feed external modules and frontend.
-        3rd party can use existing dicts to add more dicts
-        """
-        ghettoApi.audio.audio_stream_queue_dict[self.radio_name] = self.audio_stream_queue  # Html audio element
-        ghettoApi.audio.audio_stream_suffix_dict[self.radio_name] = self.suffix  # file extension
-        ghettoApi.audio.audio_stream_content_type_dict[self.radio_name] = self.content_type
-        ghettoApi.blacklist.all_blacklists_dict[self.radio_name] = {}
-        ghettoApi.blacklist.skipped_in_session_dict[self.radio_name] = []  # skipped writes per session
-        ghettoApi.err.error_dict[self.radio_name] = ''
-        ghettoApi.err.radio_err_count_dict[self.radio_name] = 0
-        ghettoApi.feature.feature_mgr_dict[self.radio_name] = {}  # each {'feat. func name has an': own manager inst.}
 
     def build_folders(self):
         """Create Path names from attributes and write folders to fs.
@@ -203,7 +175,7 @@ class GhettoRecorder(threading.Thread):
         many_radios_write_fs_delay = random.random()
         time.sleep(many_radios_write_fs_delay + 0.05)
         msg = f"\tDirectory {self.radio_dir} can not be created\nExit"
-        if not ghetto_utils.make_dirs(self.radio_name, self.radio_dir):
+        if not utils.make_dirs(self.radio_dir):
             self.error_writer(self.radio_name, msg)
 
     def open_recorder_file(self):
@@ -217,6 +189,8 @@ class GhettoRecorder(threading.Thread):
         It creates file names from title, if title is available.
         Meta creates the path for the recorder file dump.
         """
+        # self.radio_db_remote_control_run()
+
         if self.runs_meta:
             self.radio_metadata_run()
             for seconds in range(5):
@@ -227,24 +201,45 @@ class GhettoRecorder(threading.Thread):
             self.radio_recorder_run()
 
         self.radio_worker_aid_run()
-        self.radio_db_remote_control_run()
-        if self.com_q:
-            threading.Thread(name=self.test_loop_thread, target=self.radio_test_loop, args=()).start()
+        self.radio_exec_loop_run()
 
-    def radio_test_loop(self):
+    def radio_exec_loop_run(self):
+        threading.Thread(name=self.exec_loop_thread, target=self.radio_exec_loop, args=()).start()
+
+    def radio_exec_loop(self):
+        """
+        TUPLE!!! not change values
+
+        rv_tup = (radio, 'eval' or 'exec', 'command')
+        """
         while 1:
 
-            eval_str = self.com_q.com_in.get()
-            if eval_str[:5] == 'exec:':  # exec() returns nothing
-                exec(eval_str[6:])
-                continue
-            print(eval_str)
-            result = None
-            try:
-                result = eval(eval_str)
-            except Exception as e:
-                print(e)
-            self.com_q.com_out.put(result)
+            if self.shutdown:
+                break
+            if not self.com_in.empty():
+                eval_tup = self.com_in.get()
+                name, expr, command = eval_tup[0], eval_tup[1], eval_tup[2]
+
+                if expr == 'exec':
+                    try:
+                        exec(command)
+                        rv_tup = (self.radio_name, 'exec', None)
+                        self.com_out.put(rv_tup)
+                    except Exception as e:
+                        msg = f'exec fail {self.radio_name}: {e}'
+                        print(msg)
+                        self.com_out.put((self.radio_name, 'exec', msg))
+                else:
+                    try:
+                        result = eval(command)
+                        rv_tup = (self.radio_name, 'eval', result)
+                        self.com_out.put(rv_tup)
+                    except Exception as e:
+                        msg = f'eval fail {self.radio_name}: {e}'
+                        print(msg)
+                        self.com_out.put((self.radio_name, 'eval', msg))
+
+            time.sleep(.1)
 
     def radio_db_remote_control_run(self):
         """Thread switches feat. via Database interface; Frontend or DB browser
@@ -253,9 +248,11 @@ class GhettoRecorder(threading.Thread):
                          args=(), ).start()
 
     def radio_db_remote_control(self):
-        """Multiprocessor communication via database.
-        Dynamically created database table to read properties.
-        Static table to switch settings.
+        """Multiprocessor communication via database, no eval or exec. [Baustelle]
+        Frontend wants to switch off a feature. Browser -> Server -> DB attribute = False
+
+        1. Dynamically created database table to read properties (attributes not known yet).
+        2. Static table to switch settings (known attributes).
 
         * 'instance_start_stop' looks for stop order
         * 'feature_start_stop' runs_meta, runs_listen, ...
@@ -265,15 +262,26 @@ class GhettoRecorder(threading.Thread):
         dump_dct = GhettoRecorder(self.radio_name, self.radio_url).__dict__  # dead instance, need getattr for values
         attr_dct = {str(key): str(val) for key, val in dump_dct.items() if not key[:1] == '_'}  # str for db
 
-        ghetto_db_worker.db_clean_up_start_env(self)
-        col_count = ghetto_db_worker.db_count_table_cols()
-        ghetto_db_worker.db_alter_table_cols(col_count, attr_dct)
-        ghetto_db_worker.db_create_rows(self)
+        kwargs = {'radios_parent_dir': os.path.dirname(self.radio_base_dir)}
+        db_worker.db_worker_init(**kwargs)
+        id_tbl_str = db_worker.query_col_tbl_ghetto_recorder('id', self.radio_name)
+        id_str = id_tbl_str[1:-1]  # [1,2] -> 1,2
+        if id_str:
+            id_tbl = id_str.split(',')
+            for tbl_id in id_tbl:
+                db_worker.db_radio_del(tbl_id)
+        col_count = db_worker.db_count_table_cols()
+        if len(col_count) < len(attr_dct):
+            db_worker.db_alter_table_cols(col_count, attr_dct)
+        db_worker.db_create_rows(self)
+
+        print(f'  {self.radio_name} init done')
 
         while 1:
+
+            db_worker.db_remote_control_loop(self, attr_dct)
             if self.shutdown:
                 break
-            ghetto_db_worker.db_remote_control_loop(self, attr_dct)
             time.sleep(1)
 
     def radio_worker_aid_run(self):
@@ -286,9 +294,9 @@ class GhettoRecorder(threading.Thread):
         """
         while not self.shutdown:
             time.sleep(1)
-            if self.runs_meta and not ghetto_utils.thread_is_up(self.metadata_thread):
+            if self.runs_meta and not utils.thread_is_up(self.metadata_thread):
                 self.radio_metadata_run()
-            if (self.runs_record and not self.record_stop) and not ghetto_utils.thread_is_up(self.recorder_thread):
+            if (self.runs_record and not self.record_stop) and not utils.thread_is_up(self.recorder_thread):
                 self.radio_recorder_run()
 
     def radio_metadata_run(self):
@@ -316,8 +324,6 @@ class GhettoRecorder(threading.Thread):
         :params: err_msg: error message
         """
         self.error_dict[radio].append(err_msg)
-        api_err_msg = ghettoApi.err.error_dict[radio]
-        ghettoApi.err.error_dict[radio] = api_err_msg + ' :: ' + err_msg
         print(err_msg)
 
     def radio_metadata_get(self):
@@ -336,12 +342,12 @@ class GhettoRecorder(threading.Thread):
 
                 if self.new_title:
                     self.metadata_title_change()
-                    ghettoApi.info.current_title_dict[self.radio_name] = self.new_title
+                    # ghettoApi.info.current_title_dict[self.radio_name] = self.new_title
 
             for sec in range(4):  # 4 x .5 sec
                 time.sleep(.5)
                 if not self.runs_meta or self.shutdown:
-                    ghetto_utils.shutdown_msg(self.radio_name, 'Meta Thread')
+                    utils.shutdown_msg(self.radio_name, 'Meta Thread')
                     return
 
     def metadata_title_change(self):
@@ -359,21 +365,19 @@ class GhettoRecorder(threading.Thread):
         """Get connection.
         Feed listen queue and recorder file on file system.
         """
-        response = ghetto_net.load_url(self.radio_url, self.user_agent)
+        response = net.load_url(self.radio_url, self.user_agent)
         while 1:
             self.chunk = self.read_bytes(response)
             if self.chunk:
                 self.write_chunk_fs(self.chunk)
 
-                if self.runs_listen:
-                    # print('self.runs_listen ', self.chunk)
-                    if self.audio_out and not self.audio_out.full():
-                        self.audio_out.put(self.chunk)
-                    if not self.audio_stream_queue.full():
-                        self.audio_stream_queue.put(self.chunk)
+                if self.runs_listen and self.audio_out:
+                    if not self.audio_out.empty():
+                        self.audio_out.get()  # del old, no consumer
+                    self.audio_out.put(self.chunk)
 
             if self.record_stop or self.shutdown:
-                ghetto_utils.shutdown_msg(self.radio_name, 'Recorder Thread')
+                utils.shutdown_msg(self.radio_name, 'Recorder Thread')
                 return
 
     def read_bytes(self, response):
@@ -397,14 +401,16 @@ class GhettoRecorder(threading.Thread):
         :exception: error handler checks severity of the error; run or exit
         :params: rec_dst: absolute path to user file
         """
-        ghetto_recorder.record_write_last(self.chunk, self.bin_writer, self.suffix)
+        recorder.record_write_last(self.chunk, self.bin_writer, self.suffix)
         if self.recorder_file_write:
-            ghetto_recorder.copy_dst(self.radio_name, rec_dst, self.bin_writer, self.rec_src, self.buf_size)
-        self.recorder_file_write = True  # disallow one title
+            recorder.copy_dst(self.radio_name, rec_dst, self.bin_writer, self.rec_src, self.buf_size)
+        else:
+            recorder.copy_skip(self.radio_name, rec_dst)
+        self.recorder_file_write = True  # disallow one title only
 
-        ghetto_recorder.bin_writer_reset_file_offset(self.bin_writer)
+        recorder.bin_writer_reset_file_offset(self.bin_writer)
         try:
-            ghetto_recorder.record_write_first(self.chunk, self.bin_writer, self.suffix)
+            recorder.record_write_first(self.chunk, self.bin_writer, self.suffix)
         except Exception as e:
             self.error_handling(e, 'rec_dump')
 
@@ -442,65 +448,54 @@ class GhettoRecorder(threading.Thread):
             self.cancel()
 
 
-def main(radio='nachtflug', url='http://85.195.88.149:11810', test=None):
+def main(radio='nachtflug', url='http://85.195.88.149:11810'):
     """Not executed if imported as module, but can be called explicitly.
     """
-
-    from collections import namedtuple
-    ComQ = namedtuple('ComQ', "com_in com_out")
-    com_q = ComQ(mp.Queue(maxsize=1), mp.Queue(maxsize=1))
-
-    mp.set_start_method('spawn', force=True)  # http server in process, fork is deprecated in py 3.14
-
     radio_base_dir = os.path.join(dir_name, "radios")
-    audio_out_q = mp.Queue(maxsize=1)  # start web server in a process
 
-    ghettoApi.radio_inst_dict[radio] = GhettoRecorder(radio, url, com_q=com_q)
+    ghettoApi.radio_inst_dict[radio] = GhettoRecorder(radio, url)
     ghettoApi.radio_inst_dict[radio].radio_base_dir = radio_base_dir
     ghettoApi.radio_inst_dict[radio].runs_meta = True
     ghettoApi.radio_inst_dict[radio].runs_record = True
-    ghettoApi.radio_inst_dict[radio].runs_listen = True
-    ghettoApi.radio_inst_dict[radio].audio_out = audio_out_q
+    ghettoApi.radio_inst_dict[radio].runs_listen = False
+
+    # communication lines for mp; rest of instance in dict is dead meat; http srv gets one port num plus each q switch
+    ghettoApi.radio_inst_dict[radio].audio_out = mp.Queue(maxsize=1)
+    ghettoApi.radio_inst_dict[radio].com_in = mp.Queue(maxsize=1)
+    ghettoApi.radio_inst_dict[radio].com_out = mp.Queue(maxsize=1)
     ghettoApi.radio_inst_dict[radio].start()  # needs while loop to keep main() alive here
 
     while 1:  # minimize wait time
-        func_ref, args = ghetto_db_worker.query_tbl_ghetto_recorder, ['init_done', radio]
-        done = True if func_ref(*args) == 'True' else False
+        in_ = ghettoApi.radio_inst_dict[radio].com_in
+        out_ = ghettoApi.radio_inst_dict[radio].com_out
+        msg = (radio, 'eval', 'getattr(self, "init_done")')  # tuple
+        in_.put(msg)
+        done = out_.get()[2]  # tuple
         if done:
             break
+        time.sleep(1)
 
+    in_.put((radio, 'eval', 'getattr(self, "content_type")'))
+    content_type = out_.get()[2]
     param_http = {'radio_name': radio, 'radio_url': url,
-                  'content_type': ghetto_db_worker.query_tbl_ghetto_recorder('content_type', radio),
+                  'content_type': content_type,
                   'port': 1242, 'srv_name': 'mr.http.server',
-                  'com_queue': audio_out_q  # shared queue, can be used to switch inet radio output with local audio
-                  # 'com_queue': ghettoApi.audio.audio_stream_queue_dict[radio]  # api default queue
+                  'com_queue': ghettoApi.radio_inst_dict[radio].audio_out  #
                   }
     import ghetto_http_simple
-
+    #
     proc = mp.Process(target=ghetto_http_simple.run_http, kwargs=param_http)
     proc.start()
-
-    if test:
-        time.sleep(5)
-
-        SQL = "UPDATE GRAction SET runs_listen = ? WHERE radio_name = ?;"
-        data = (False, radio)
-        ghetto_db_worker.table_insert(SQL, data)
-        print('update table GRAction runs_listen = False')
-        SQL = "UPDATE GRAction SET runs_record = ? WHERE radio_name = ?;"
-        data = (False, radio)
-        ghetto_db_worker.table_insert(SQL, data)
-        print('update table GRAction runs_record = False')
-        time.sleep(15)
-
-        SQL = "UPDATE GRAction SET stop = ? WHERE radio_name = ?;"
-        data = (True, radio)
-        ghetto_db_worker.table_insert(SQL, data)  # shutdown radio via database
-        print('update table GRAction stop')
+    in_.put((radio, 'exec', 'setattr(self, "runs_listen", True)'))
+    print(out_.get()[2])  # (None) know it is done, else we hang on q
 
     while 1:
         time.sleep(42)
 
 
 if __name__ == '__main__':
-    main(test=True)
+    import multiprocessing as mp
+    from ghettorecorder.ghetto_api import ghettoApi
+    mp.set_start_method('spawn', force=True)
+
+    main()
