@@ -16,11 +16,14 @@ class DBWorker:
                             'record_stop': None,
                             'runs_listen': None}
 
+        self.radios_parent_dir = ''
+        self.db_name = 'ghetto_recorder_control.db'
+
 
 dbWorker = DBWorker()
 
 
-def db_worker(**kwargs):
+def db_worker_init(**kwargs):
     """One can write modules of any kind and make it mp.
 
     Switch attributes and trigger methods from frontend.
@@ -34,6 +37,11 @@ def db_worker(**kwargs):
     if kwargs:
         dbWorker.kwargs = kwargs  # kwargs from caller dumped for the whole module
         dbWorker.__dict__.update(kwargs)
+        dbWorker.radios_parent_dir = kwargs['radios_parent_dir']
+
+        db_path = os.path.join(dbWorker.radios_parent_dir, dbWorker.db_name)
+        if not os.path.isfile(db_path):
+            empty_db_from_schema()
 
 
 def instance_start_stop(radio_name=None):
@@ -82,48 +90,11 @@ def feature_start_stop_reset(radio_name=None):
     table_insert(SQL, data)
 
 
-def db_exits():
-    """"""
-    SQL = "SELECT id FROM GhettoRecorder"
-    try:
-        cursor = table_select(SQL, ())
-        cursor.close()
-    except sqlite3.OperationalError:
-        return False
-
-    return True
-
-
-def db_radio_query(radio_name):
-    """Radio remote control thread ask to be on tables.
-    * Caller must execute ghetto_utils.empty_db_from_schema() **at first**
-
+def db_radio_del(table_id):
     """
-    SQL = "SELECT id FROM GhettoRecorder WHERE radio_name = ?"
-    data = (radio_name,)
-    try:
-        table_select(SQL, data)
-        return True
-    except sqlite3.OperationalError:
-        print('Create Database ...')
-        empty_db_from_schema()
-        try:
-            table_select(SQL, data)
-            return True
-        except sqlite3.OperationalError:
-            print('Radio not yet listed in Database.')
-    return False
-
-
-def db_radio_del(radio_name):
-    """Radio
     """
-    SQL = "DELETE FROM GhettoRecorder WHERE radio_name = ?;"
-    data = (radio_name,)
-    db_insert_retry(SQL, data)
-    SQL = "DELETE FROM GRAction WHERE radio_name = ?;"
-    data = (radio_name,)
-    db_insert_retry(SQL, data)
+    table_insert("DELETE FROM GhettoRecorder WHERE id = ?;", (int(table_id),))
+    table_insert("DELETE FROM GRAction WHERE id = ?;", (int(table_id),))
 
 
 def db_radio_name_url_show_all():
@@ -174,8 +145,10 @@ def db_create_rows(self):
     """
     SQL = "INSERT INTO GhettoRecorder (radio_name) VALUES (?);"
     table_insert(SQL, (self.radio_name,))
-    SQL = "INSERT INTO GRAction (radio_name) VALUES (?);"  # extern write, where we listen for change orders
-    table_insert(SQL, (self.radio_name,))
+    SQL = "INSERT INTO GRAction (runs_meta, runs_record, record_stop, recorder_file_write, " \
+          "runs_listen, stop,  radio_name) VALUES (?,?,?,?, ?,?,?);"
+    data = (None, None, None, None, None, None, self.radio_name)
+    table_insert(SQL, data)
 
 
 def db_alter_table_cols(col_count_tbl, attr_dct):
@@ -201,15 +174,6 @@ def db_count_table_cols():
     return col_count_tbl
 
 
-def db_clean_up_start_env(self):
-    """db exists or create, del old row in table to avoid side effects
-
-    :params: self: caller instance it(self) context
-    """
-    empty_db_from_schema() if not db_exits() else None
-    db_radio_del(self.radio_name) if db_radio_query(self.radio_name) else None
-
-
 def db_remote_control_loop(self, attr_dct):
     """Content of while loop.
 
@@ -223,11 +187,9 @@ def db_remote_control_loop(self, attr_dct):
     :params: attr_dct: dump of a (fake) instance.__dict__ with actual val of caller instance;
     :method: radio_db_remote_control: caller instance.radio_db_remote_control()
     """
-    db_upd_radio_props(self, attr_dct)
-
     exit_ = instance_start_stop(self.radio_name)  # read stop order
     if bool(exit_):
-        print('\tremote_control ... shut down radio')
+        print(f'\tDB set: . {self.radio_name} . shut down radio')
         self.cancel()
 
     upd = False
@@ -235,15 +197,17 @@ def db_remote_control_loop(self, attr_dct):
     for feat, setting in feat_dct.items():
         if setting is not None:
             upd = True
-            print(f'\tremote_control ... {feat} {bool(setting)}')
+            print(f'\tDB set: . {self.radio_name} . {feat} {bool(setting)}')
             val_bool = getattr(self, feat)  # only features with True or False here
             if bool(setting) != val_bool:
                 setattr(self, feat, bool(setting))
     if upd:
         feature_start_stop_reset(self.radio_name)
 
+    db_upd_radio_props(self, attr_dct)
 
-def query_tbl_ghetto_recorder(column, radio_name):
+
+def query_col_tbl_ghetto_recorder(column, radio_name):
     """Select a column from GhettoRecorder table.
 
     :params: column: table column
@@ -251,21 +215,36 @@ def query_tbl_ghetto_recorder(column, radio_name):
     :returns: string of cell, column row, else empty string
     """
     SQL = "SELECT " + column + " FROM GhettoRecorder WHERE radio_name = ? "
-    cursor = table_select(SQL, (radio_name,))
-    col_row_val = [row[column] for row in cursor if row[column] is not None]
-    cursor.close()
-    return ''.join(col_row_val)  # str from table
+    data = (radio_name,)
+    cursor = table_select(SQL, data)
+    col_row_val = None
+    bla = cursor.fetchall()
+    print(bla)
+    if cursor:
+        col_row_val = [row[column] for row in bla if row[column] is not None]
+        cursor.close()
+    return ''.join(str(col_row_val)) if cursor else None
 
 
-def get_db_path(db='ghetto_recorder_control.db'):
-    return os.path.join(dir_name, db)
+def query_all_tbl_ghetto_recorder():
+    """Select all.
+    Caller close cursor.
+    """
+    SQL = "SELECT * FROM GhettoRecorder"
+    cursor = table_select(SQL, ())
+    tbl = cursor
+    return tbl
+
+
+def get_db_path(db=dbWorker.db_name):
+    return os.path.join(dbWorker.radios_parent_dir, db)
 
 
 def get_db_connection():
 
     db = get_db_path()
     conn = sqlite3.connect(str(db))
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlite3.Row  # can use column names, but often get str([1,2,3])
     return conn
 
 
@@ -274,8 +253,12 @@ def table_select(sql_statement, data):
     """
     conn = get_db_connection()
     cur = conn.cursor()
-    rv = cur.execute(sql_statement, data)
-    conn.commit()
+    try:
+        rv = cur.execute(sql_statement, data)
+        conn.commit()
+    except sqlite3.OperationalError:
+        print(f'table_select() {sql_statement} {data}')
+        rv = None
     # conn.close()  # remainder
     return rv
 
@@ -297,24 +280,18 @@ def table_insert(sql_statement, data):
         conn.close()
 
 
-def table_select_column(table, col):
-    conn = get_db_connection()
-    column = conn.execute('SELECT ' + col + ' FROM ' + table + ';')
-    rows = []
-    for row in column:
-        if row[col]:
-            rows.append(row[col])
-
-    conn.close()
-    return rows
-
-
-def empty_db_from_schema(db='ghetto_recorder_control.db', schema_file='schema.sql'):
-    """Crash test. Needed for read only or partial write fs Snapcraft, Android.
-    Create table, test write row, delete row.
+def empty_db_from_schema():
     """
-    conn = sqlite3.connect((str(os.path.join(dir_name, db))))
+    | Schema with
+    | minimum GhettoRecorder table for reading properties,
+    | complete GRAction table for setting integer values to switch a feature on/off .
+    """
+    if not dbWorker.radios_parent_dir:
+        raise ValueError('no path for empty_db_from_schema')
+    db_path = str(os.path.join(dbWorker.radios_parent_dir, dbWorker.db_name))
+    conn = sqlite3.connect(db_path)
 
-    with open((os.path.join(dir_name, schema_file)), encoding='utf-8') as text_reader:
+    with open((os.path.join(dir_name, 'schema.sql')), encoding='utf-8') as text_reader:
         conn.executescript(text_reader.read())
     conn.close()
+    print(f'Database path: {db_path}')
