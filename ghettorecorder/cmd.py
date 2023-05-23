@@ -11,6 +11,7 @@ from pathlib import Path
 import ghettorecorder.ghetto_menu as ghetto_menu
 import ghettorecorder.ghetto_procenv as ghetto_procenv
 import ghettorecorder.ghetto_blacklist as ghetto_blacklist
+import ghettorecorder.ghetto_container as container
 from ghettorecorder.ghetto_api import ghettoApi
 
 mp.set_start_method('spawn', force=True)  # http server process
@@ -18,12 +19,16 @@ mp.set_start_method('spawn', force=True)  # http server process
 
 class Entry:
     def __init__(self):
+        self.http_srv = False
         # file system config
         self.dir_name = os.path.dirname(__file__)  # absolute dir path
         self.config_name = "settings.ini"
         self.blacklist_name = "blacklist.json"
         self.radios_parent_dir = ''  # changed if settings GLOBAL 'save_to_dir' changes, blacklist_dir is also that dir
         # radio dicts, lists
+        self.runs_meta = True
+        self.runs_record = True
+        self.runs_listen = True
         self.radio_name_list = []
         self.config_file_radio_url_dict = {}  # all {name: url}
         self.config_file_settings_dict = {}  # blacklist, folders
@@ -36,14 +41,19 @@ entry = Entry()
 
 
 def init():
-    """File system basic info to vars.
+    """File system basic info to find the configuration file.
+    | Container creates folders in places where writing is allowed.
     """
     config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    is_container = container.container_setup()
+    if is_container:
+        config_dir = container.helper.config_dir
+
     ghettoApi.path.config_dir = config_dir
     ghettoApi.path.config_name = entry.config_name
 
 
-def run_radios(radios_parent_dir, radio_dict):
+def run_radios(radio_dict):
     """
     Each instance can have its own configuration. Use a Database or json file.
 
@@ -54,16 +64,8 @@ def run_radios(radios_parent_dir, radio_dict):
     :params: radio_base_dir: parent dir
     :params: radio_dict: radios with url from menu
     """
-    radio_base_conf = {  # substitute 'radio_base_conf' with 'radio' name column in db or use a json file
-        'radio_base_dir': os.path.join(radios_parent_dir, "radios"),
-        'runs_meta': True,
-        'runs_record': True,
-        'runs_listen': False,
-        'audio_simple_http_queue': ghetto_procenv.procenv.audio_out
-    }
-
     for radio, url in radio_dict.items():
-        ghetto_procenv.create_radio_instance(radio, url, **radio_base_conf)
+        ghetto_procenv.radio_instance_create(radio, url, **entry.__dict__)
 
     url_timeout = 15
     start = time.perf_counter()
@@ -72,6 +74,12 @@ def run_radios(radios_parent_dir, radio_dict):
         if done or (round((time.perf_counter() - start)) >= url_timeout):
             break
 
+
+def radios_error_get():
+    """Useful for terminal, where we must start
+    all instances at the same time.
+
+    """
     instance_err_dict = {}
     for radio, inst in ghettoApi.radio_inst_dict.items():
         if ghettoApi.radio_inst_dict[radio].error_dict:
@@ -85,6 +93,7 @@ def run_radios(radios_parent_dir, radio_dict):
         print('\n\n --- end ---\n\n')
 
     entry.no_err_radios = [radio for radio in ghettoApi.radio_inst_dict.keys() if radio not in instance_err_dict.keys()]
+    return entry.no_err_radios
 
 
 def show_radios_urls_formatted():
@@ -93,14 +102,6 @@ def show_radios_urls_formatted():
     for radio, url in entry.config_file_radio_url_dict.items():
         print(f'* {radio:<20} {url}')
     print('\n\t---')
-
-
-def http_srv_start():
-    """Enable listen capability.
-    """
-    radio_name = entry.no_err_radios[0]
-    radio_url = entry.config_file_radio_url_dict[radio_name]
-    ghetto_procenv.streaming_http_srv_start(radio_name, radio_url)
 
 
 def termination_accelerator(one_radio_instance):
@@ -146,7 +147,7 @@ def main():
     for radio in entry.config_file_radio_url_dict.keys():
         entry.radio_name_list.append(radio)
     entry.config_file_settings_dict = ghetto_menu.settings_ini_global()
-    entry.radio_selection_dict = ghetto_menu.record_read_radios()
+    entry.radio_selection_dict = ghetto_menu.record_read_radios()  # select radio menu input()
 
     remote_dir = ghettoApi.path.save_to_dir  # terminal menu option, not the default in [GLOBAL] from settings.ini
     if remote_dir:
@@ -154,18 +155,15 @@ def main():
     else:
         entry.radios_parent_dir = Path(ghettoApi.path.config_dir)
 
-    run_radios(entry.radios_parent_dir, entry.radio_selection_dict)
-    if not len(entry.no_err_radios):
-        print('\n\tAll radios suffer from failures. Exit.\n')
-        return
-
-    http_srv_start()
-    ghetto_blacklist.init(**entry.__dict__)
+    run_radios(entry.radio_selection_dict)
 
     show_radios_urls_formatted()
+    ghetto_blacklist.init(**entry.__dict__)
 
     while 1:
-        time.sleep(1)
+        # names_list = [thread.name for thread in threading.enumerate()]
+        # print(names_list)
+        time.sleep(10)
 
 
 if __name__ == "__main__":
