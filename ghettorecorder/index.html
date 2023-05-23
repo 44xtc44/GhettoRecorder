@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="static/js/index.js" charset="utf-8"></script>
+    <script src="static/js/animate.js" charset="utf-8"></script>
+    <link rel="icon" href="static/images/favicon.svg">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=PT+Sans&display=swap' rel='stylesheet'>
+    <title>GhettoRecorder Frontend</title>
+  </head>
+
+  <body>
+    <div id='divOverlay' onclick="hiddenOnOff.update({element:'divOverlay',set:false});audioEnable()"></div>
+
+    <div id="divBalloon" >
+      <div class=contCanvasBalloon>
+        <div id=divCanvasBalloon onclick="callAnimation();">
+          <canvas id='canvasBalloon'></canvas>
+        </div>
+      </div>
+      <div class="contCanvasBalloon">
+        <div id=divBasket >
+          <!-- Placeholder <img src='data:image/svg+xml;base64,{convert_img('gr_sky_basket.svg')}'/>  -->
+          _o__gr_basket____
+        </div>
+      </div>
+    </div>
+
+    <div class='container'>
+
+      <div class='desk'>
+        <div class='deskHeader'>
+          <h1> GhettoRecorder </h1>
+
+          <div id="divMenuBtn">
+            <span class="spanBigBtn"
+                  onclick="hiddenOnOff.toggle({element:'divEdit'});
+                           hiddenOnOff.toggle({element:'divBalloon'});"
+            >&#9776;
+            </span>
+            &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+            <span class="spanBigBtn"
+                  onclick="hiddenOnOff.toggle({element:'divControllerSlider'});"
+            >&#128266;
+            </span>
+          </div>
+          <div id="svgSkyRight_wrapper">
+            <div id='svgSkyRight'>
+            <!--Placeholder- <img src='data:image/svg+xml;base64,{convert_img("gr_sky_right.svg")}'/> -->
+            _o__gr_sky____
+            </div>
+          </div>
+        </div>
+
+        <div id="divControllerSlider" class="hiddenDiv">
+            <audio controls autoplay id='audioR'>
+              <source src=''>
+            </audio>
+
+            <input id='gainR'
+                   type="range" value="1" min="1" max="3" step="0.1"
+                   data-toggle="tooltip" data-html="false"
+                   title="Gain: increase input (preamp); may distort (cheapo transistor); max. 300%">
+            &#128266;
+        </div>
+
+        <div id="divEdit" class="hiddenDiv">
+          <div id="divEditCaller">
+            <p class="pEdit" id="pShutdown">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              <br><span class="spanBigBtn" onclick="ajax_server_shutdown();">&#10060; recorder shut down</span>
+              <br><span id="sMsgShutDown" ></span>
+            </p>
+
+            <p class="pEdit" id="pDocu">
+              <span class="spanBigBtn">
+              &#128218; <a href="https://ghettorecorder.readthedocs.io/en/latest/">Documentation on readthedocs.io</a>
+              </span>
+            </p>
+
+            <p class="pEdit" id="pEditConfig"
+               onclick="ajax_get_config_file();
+                        hiddenOnOff.toggle({element:'divEditConfig'});
+                        hiddenOnOff.toggle({element:'pShutdown'});
+                        hiddenOnOff.toggle({element:'pDocu'});
+                        hiddenOnOff.toggle({element:'pEditBlacklist'});
+                        ">
+              <label for="configFileEdit">
+                <span class="spanBigBtn">
+                  &#128251; Edit radio config
+                </span>
+                <br><span id="configFileEditPath"></span>
+              </label>
+            </p>
+
+            <p class="pEdit" id="pEditBlacklist"
+               onclick="ajax_get_blacklist_file();
+                        hiddenOnOff.toggle({element:'divEditBlacklist'});
+                        hiddenOnOff.toggle({element:'pShutdown'});
+                        hiddenOnOff.toggle({element:'pDocu'});
+                        hiddenOnOff.toggle({element:'pEditConfig'});
+                       ">
+
+              <label for="blacklistFileEdit">
+                <span class="spanBigBtn">
+                  &#9940; Edit blacklist
+                </span>
+                <br><span id="blacklistFileEditPath"></span>
+              </label>
+            </p>
+          </div>
+
+          <div id="divEditConfig" class="hiddenDiv">
+            <textarea name="configFileEdit" id="configFileEdit" rows="25" cols="80">
+            </textarea>
+            <button type="button" onclick="ajax_write_config_file();">send</button>
+            <p id="pConfigResponse"></p>
+
+          </div>
+          <div id="divEditBlacklist" class="hiddenDiv">
+            <textarea name="blacklistFileEdit" id="blacklistFileEdit" rows="50" cols="80">
+            </textarea>
+            <button type="button" onclick="ajax_write_blacklist_file();">send</button>
+            <p id="pBlacklistResponse"></p>
+
+          </div>
+
+            <p class="pEdit">
+              <br>GhettoRecorder MIT license.
+              <br>© René Horn 2023
+            </p>
+
+        </div>
+
+        <!-- hint <div class='svgImageSky'> <img src='data:image/svg+xml;base64, !imagedata '/>  </div> -->
+        <p class=pMid>
+          Play local buffer, or start recorder.
+        </p>
+        <div id='divFlexContainer'>
+
+            <div class='middle'>
+
+              _o__radio_names____
+            </div>
+        </div>
+
+        <p id=pTitle class=pInOut> </p>
+        <p id=pMsg class=pInOut> </p>
+
+      </div>
+
+    </div>
+  </body>
+</html>

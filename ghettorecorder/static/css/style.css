@@ -1,0 +1,145 @@
+:root {
+  --background-color: #ccc;
+  --desk-color: #f9f9f9;
+  --header-color: #fd7f7f;
+  --border-radius: .6em;
+  --box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+}
+body{
+  font-family:PT Sans, arial; 
+  color:black;
+  background-color: var(--background-color);
+}
+h1 {
+  color:var(--desk-color);
+  text-align:center;
+}
+.hiddenDiv {
+  display: none;
+}
+#divOverlay {
+  z-index: 11;
+  display:block;position: 
+  fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+/* p elements */
+.pInOut {
+  border-radius: var(--border-radius);
+}
+.pEdit {
+  margin:10px;
+  background-color: var(--desk-color);
+}
+.pMid {  /*Play local buffer, or start recorder.*/
+  color: black;
+  text-align:center;
+}
+#pMsg { /*Display whole dictionary*/
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+}
+.desk {
+  margin-top:50px;
+  margin-left:auto;
+  z-index: -1;
+  margin-right:auto;
+  width:80%;
+  background-color: var(--desk-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+.deskHeader {
+  height: 50px;
+  background-color: var(--header-color);
+  height: 40px;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+.contCanvasBalloon {
+  position: relative; /* child div can position absolute */
+  z-index: 0;
+}
+#divBasket {
+  position: absolute;
+  top: 24em;
+  left: 5em;
+}
+#divCanvasBalloon {
+  position: absolute;
+  cursor: pointer;
+  border-radius: 20em;
+  background-color: cadetBlue;
+  top: 18em;
+  left: 6em;
+  z-index: 0;
+  box-shadow: var(--box-shadow);
+}
+#canvasBalloon {
+  background-color: turquoise; 
+  border-radius: 10em;
+  width: 7em;
+  height: 7em;
+  box-shadow: 0 0 4px rgba(35, 173, 278, 1);  /* rgba(35, 173, 278, 1) */
+}
+#svgSkRight {
+  position: relative;
+  top: 10em;
+  left: 10em;
+  z-index: 0;
+}
+/* radio selectors */
+.divRadioBtn {
+  z-index: 10;
+  border-radius: var(--border-radius);
+  background-color: var(--desk-color);
+}
+/*https://ostraining.com/blog/webdesign/css-flexbox-the-flex-basis-property/
+#:~:text=The%20flex%2Dbasis%20upper%20limit,%E2%80%9Coverflows%E2%80%9D%20its%20container).
+*/
+#divFlexContainer {
+  display: flex;
+}
+.middle {
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  left: 10em;
+}
+#divMenuBtn {
+  position: relative;
+  cursor: pointer;
+  top: -3.75em;
+  left: 2em;
+}
+#divControllerSlider {
+  position: absolute;
+  z-index: 11;
+  z-index: 11;
+  background-color: var(--header-color);
+  max-width: 20em;
+  border-radius: var(--border-radius);
+  text-align: center;
+  padding: 5px;
+  margin-top: 1em;
+  box-shadow: var(--box-shadow);
+}
+#svgSkyRight_wrapper {
+    overflow: hidden;
+}
+#edit {
+  position: absolute;
+  z-index: 12;
+  background-color: var(--desk-color);
+}
+.spanBigBtn {
+  font-size: 150%;
+  cursor: pointer;
+}
