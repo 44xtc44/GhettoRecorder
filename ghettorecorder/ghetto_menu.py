@@ -32,7 +32,7 @@ Methods
 import os
 from aacrepair import AacRepair
 from ghettorecorder.ghetto_api import ghettoApi
-from ghettorecorder.ghetto_ini import GIni
+import ghettorecorder.ghetto_ini as ghetto_ini
 
 
 def menu_main():
@@ -93,6 +93,7 @@ def menu_path():
             print('Invalid option. Please enter a number between 1 and 2.')
         if option == 1:
             parent_record_path_change()
+            menu_main()
             break
         elif option == 2:
             menu_main()
@@ -102,7 +103,7 @@ def menu_path():
 
 
 def menu_blacklist():
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     menu_options = {
         1: "blacklist on (don't write title if already downloaded)",
         2: 'blacklist off',
@@ -132,7 +133,7 @@ def menu_blacklist():
 
 
 def menu_find_config():
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     menu_options = {
         1: 'Path to "setting.ini" and "blacklist.json"',
         2: 'Back to Main Menu',
@@ -163,22 +164,18 @@ def record():
 
     Functions
        GIni.config_path_test()    - test if configparser can read config file
-       GIni.global_config_show()  - [GLOBAL] settings.ini vars
-       GIni.global_config_push()  - read in [GLOBAL] settings.ini vars
-       GIni.show_items_ini_file() - show the main menu headline and description
+       ghetto_ini.global_config_show()  - [GLOBAL] settings.ini vars
+       ghetto_ini.global_config_to_api  - read in [GLOBAL] settings.ini vars
+       ghetto_ini.stations_config_show() - show the main menu headline and description
     """
     print('\toption \'record\'')
-    if record_path_get():
-        GIni.show_items_ini_file()
+    if ghetto_ini.stations_config_get():
+        ghetto_ini.stations_config_show()
+
         print(f'\n.. config file in {ghettoApi.path.config_dir}')
-        if GIni.global_config_show():
-            GIni.global_config_push()
-
-
-def record_path_get():
-    if not GIni.config_path_test():
-        return False
-    return True
+        ghetto_ini.global_config_get()
+        ghetto_ini.global_config_to_api()
+        ghetto_ini.global_config_show()  # if something is configured
 
 
 def record_read_radios():
@@ -206,7 +203,7 @@ def record_read_radios():
         radio_name = line_input.strip()
 
         if line_input == str(12345):  # all
-            for name in GIni.radio_names_list:
+            for name in ghetto_ini.gini.radio_names_list:
                 name, url = record_create_radio_url_dict(name)
                 radio_url_dict[name] = url
                 print(f"12345...{name}")
@@ -233,10 +230,18 @@ def record_read_radios():
     return radio_url_dict
 
 
+def radio_url_dict_create():
+    radio_url_dict = {}
+    for name in ghetto_ini.gini.radio_names_list:
+        name, url = record_create_radio_url_dict(name)
+        radio_url_dict[name] = url
+    return radio_url_dict
+
+
 def settings_ini_to_dict():
     """"""
     radio_url_dict = {}
-    for name in GIni.radio_names_list:
+    for name in ghetto_ini.gini.radio_names_list:
         name, url = record_create_radio_url_dict(name)
         radio_url_dict[name] = url
     return radio_url_dict
@@ -245,7 +250,7 @@ def settings_ini_to_dict():
 def settings_ini_global():
     """"""
     rv_empty = {}
-    config_global_dct = GIni.global_config_get()
+    config_global_dct = ghetto_ini.global_config_get()
     return config_global_dct if config_global_dct else rv_empty
 
 
@@ -253,16 +258,16 @@ def record_validate_input(radio_name) -> bool:
     """ return True if choice is name in list, return True for choice if index of list is a valid integer
     return False if not valid
      """
-    if radio_name in GIni.radio_names_list:
+    if radio_name in ghetto_ini.gini.radio_names_list:
         return True
     try:
         radio_index = abs(int(radio_name))  # 0000 and -1
     except ValueError:
         return False
-    if len(GIni.radio_names_list) < radio_index:
+    if len(ghetto_ini.gini.radio_names_list) < radio_index:
         # input 100 if radio list has only 12 members
         return False
-    if GIni.radio_names_list[radio_index]:
+    if ghetto_ini.gini.radio_names_list[radio_index]:
         return True
 
 
@@ -271,11 +276,11 @@ def record_validate_radio_name(radio_name):
     clean false input like 0000 to 0, -12 to 12
     GIni.radio_names_list[abs(int(12))] = 'nachtflug'
     """
-    if radio_name in GIni.radio_names_list:
+    if radio_name in ghetto_ini.gini.radio_names_list:
         return radio_name
     else:
         radio_id = radio_name
-        return GIni.radio_names_list[abs(int(radio_id))]
+        return ghetto_ini.gini.radio_names_list[abs(int(radio_id))]
 
 
 def record_create_radio_url_dict(radio_name):
@@ -283,7 +288,7 @@ def record_create_radio_url_dict(radio_name):
     need radio name as thread name and folder name, url to connect to network
     clean the radio name from special chars to make folders
     """
-    url = GIni.config_stations[radio_name]
+    url = ghetto_ini.gini.config_stations_dct[radio_name]
     radio_spec = remove_special_chars(radio_name)
     radio_url_tuple = (radio_spec, url)
     return radio_url_tuple
@@ -291,13 +296,13 @@ def record_create_radio_url_dict(radio_name):
 
 def terminal_record_blacklist_enabled_get():
     """ return True/False, called by ghetto_recorder module """
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     return ghettoApi.blacklist.blacklist_enable
 
 
 def terminal_record_all_radios_get():
     """ called by ghetto_recorder module to write blacklist beside settings.ini """
-    return GIni.radio_names_list
+    return ghetto_ini.gini.radio_names_list
 
 
 def path_change():
@@ -318,7 +323,7 @@ def parent_record_path_change():
         we crash, if config file is not in path, writing will fail
      """
     print(f'\n\tWrite a new path to store files\n.. config file in {ghettoApi.path.config_dir}')
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
         custom_path = line_input.strip()  # to validate the name
@@ -331,10 +336,10 @@ def parent_record_path_change():
             is_valid = path_validate_input(custom_path)
             if is_valid:
                 try:
-                    GIni.global_record_path_write(custom_path)
+                    ghetto_ini.global_record_path_write(custom_path)
                 except FileNotFoundError:
                     print("--> error, config file is not there or writeable (check path) - proceed")
-                GIni.global_config_show()
+                ghetto_ini.global_config_show()
                 input('Hit Enter to leave -->:')
                 break
             else:
@@ -349,11 +354,11 @@ def config_path_change():
      show old path
         write new path to [GLOBAL] section, create [GLOBAL], if not exists
         test if path is writeable
-        show new path, GIni.global_config_show()
+        show new path, ghetto_ini.global_config_show()
      """
     print(f'\n\tType path to folder with settings.ini and blacklist.json (used for radio sub directories)'
           f'\n.. config file in {ghettoApi.path.config_dir}')
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
         config_files_dir = line_input.strip()  # to validate the name
@@ -365,11 +370,11 @@ def config_path_change():
         else:
             old_config_dir = ghettoApi.path.config_dir
             ghettoApi.path.config_dir = config_files_dir
-            has_config = record_path_get()
+            has_config = ghetto_ini.config_file_read()
             is_valid = path_validate_input(config_files_dir)
             if is_valid and has_config:
-                GIni.config_path_set(config_files_dir)
-                GIni.global_config_show()
+                ghetto_ini.config_path_api_set(config_files_dir)
+                ghetto_ini.global_config_show()
                 input('Hit Enter to leave -->:')
                 break
             else:
@@ -409,16 +414,16 @@ def blacklist_on():
     print('\n\tblacklist is ON: settings.ini file'
           '\n\tExisting titles are not recorded again and again.'
           '\nfile name is "blacklist.json" in the same folder as "settings.ini"')
-    GIni.global_blacklist_enable_write("True")
-    GIni.global_config_show()
+    ghetto_ini.global_blacklist_enable_write("True")
+    ghetto_ini.global_config_show()
     input('Hit Enter to leave -->:')
 
 
 def blacklist_off():
     """ write disabled to config file """
     print('\n\tblacklist is OFF: settings.ini file')
-    GIni.global_blacklist_enable_write("False")
-    GIni.global_config_show()
+    ghetto_ini.global_blacklist_enable_write("False")
+    ghetto_ini.global_config_show()
     input('Hit Enter to leave -->:')
 
 
@@ -426,7 +431,7 @@ def aac_file_repair():
     """
     """
     print('\n\tWrite a path to aac files. Only aac files will be touched.')
-    GIni.global_config_show()
+    ghetto_ini.global_config_show()
     while True:
         line_input = input('Enter a path, OS syntax (f:\\10 or /home ) -->:')
         aac_path = line_input.strip()  # to validate the name
@@ -451,3 +456,14 @@ def aac_file_repair():
 def remove_special_chars(str_name):
     ret_value = str_name.translate({ord(string): "" for string in '"!@#$%^*()[]{};:,./<>?\\|`~=+"""'})
     return ret_value
+
+
+def main():
+    config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    ghettoApi.path.config_dir = config_dir
+    ghettoApi.path.config_name = "settings.ini"
+    menu_main()
+
+
+if __name__ == "__main__":
+    main()

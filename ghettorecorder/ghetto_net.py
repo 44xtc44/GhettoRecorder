@@ -10,7 +10,6 @@
 :methods: playlist_m3u: extract first available server from playlist
 :methods: resolve_playlist: return first url from a playlist
 """
-import os
 import io
 import ssl
 import urllib
@@ -20,33 +19,34 @@ from urllib.request import urlopen, Request
 import ghettorecorder.ghetto_header_mp3 as ghetto_header_mp3
 import ghettorecorder.ghetto_header_aac as ghetto_header_aac
 
-os.environ['SSL_CERT_FILE'] = certifi.where()
 context_ssl = ssl.create_default_context(cafile=certifi.where())
 
 
 def load_url(url, user_agent=None):
     """Get server response.
+    The place of hope and ''interesting behaviour''.
 
     :params: url: url
     :exception: Timeout recursive call
     :return: http server response
     :rtype: http response
     """
-    try:
-        request = Request(url)
-        opener = urllib.request.build_opener()
-        if user_agent:
-            opener.addheaders = [('User-agent', user_agent)]
-        urllib.request.install_opener(opener)
-        response = urlopen(request, timeout=15, context=context_ssl)
+    request = Request(url)
+    opener = urllib.request.build_opener()
+    if user_agent:
+        opener.addheaders = [('User-agent', user_agent)]
+    urllib.request.install_opener(opener)
 
-        return response
+    try:
+        response = urlopen(request, timeout=15, context=context_ssl)
     except TimeoutError:
         print('TimeoutError in load_url().')
         return False
     except Exception as error:
         print(f'unknown error in load_url() {error}')
         return False
+
+    return response
 
 
 def stream_filetype_url(response, str_radio):

@@ -4,7 +4,7 @@
 :methods: switch_title: Write last, first chunk of new, dump old file to disc.
 :methods: teardown: Graceful copy, mark files incomplete on shut down.
 :methods: copy_dst: Decide if recorder file should be dumped or not.
-:methods: blacklist_title: Disassemble path to get file, title name from path string.
+
 :methods: remove_dst: Delete existing file for shutil copy.
 :methods: copy_src_dst: Copy recorder file to user file
 :methods: bin_writer_reset_file_offset: Reset file writer offset to begin of file
@@ -17,11 +17,9 @@
 
 import os
 import shutil
-from time import sleep
 from time import strftime
 
 from aacrepair import AacRepair
-from ghettorecorder.ghetto_api import ghettoApi
 
 aac_repair = AacRepair()
 
@@ -74,9 +72,18 @@ def path_title_cut(str_radio, rec_dst):
     return rv_dict
 
 
+def copy_skip(str_radio, recorder_dst):
+    """Show skipped file path
+
+    :params: str_radio: name
+    :params: recorder_dst: absolute path to user file
+    """
+    print(f'\n-SKIP->>> {str_radio}: {recorder_dst.encode("utf-8")}\n')
+
+
 def copy_dst(str_radio, recorder_dst, bin_writer, recorder_src, buf_size):
-    """Decide if recorder file should be dumped or not.
-    Skip dump, if title found in blacklist. File is known already.
+    """
+    Caller. Call only if attribute is set. 'recorder_file_write'
 
     :params: str_radio: name
     :params: recorder_dst: absolute path to user file
@@ -84,52 +91,9 @@ def copy_dst(str_radio, recorder_dst, bin_writer, recorder_src, buf_size):
     :params: recorder_src: absolute path to recorder file
     :params: buf_size: chunk size to fit block size of OS
     """
-    blacklist_enabled = ghettoApi.blacklist.blacklist_enable
-    global_blacklist_dict = {}
-    if str_radio in ghettoApi.blacklist.all_blacklists_dict.keys():
-        global_blacklist_dict = ghettoApi.blacklist.all_blacklists_dict[str_radio]
-    # extract title from path and write to "recorder_new_title_dict"
-    title = blacklist_title(str_radio, recorder_dst)
-    title = title if title else f'  -- no title for {str_radio} --'
-
-    if not blacklist_enabled:
-        remove_dst(recorder_dst, bin_writer)
-        copy_src_dst(recorder_dst, recorder_src, buf_size)
-        print(f'\n-write--> {str_radio}: {title}\n')  # small letters
-
-    else:
-        if title not in global_blacklist_dict:
-            remove_dst(recorder_dst, bin_writer)
-            copy_src_dst(recorder_dst, recorder_src, buf_size)
-            try:
-                print(f'\n-WRITE->>> {str_radio}: {title.encode("utf-8")}\n')  # big letters
-            except UnicodeEncodeError:
-                print(f'\n-SKIP->>> {str_radio}: no title display, unicode, no OS language support\n')
-        else:
-            try:
-                print(f'\n-SKIP->>> {str_radio}: {title.encode("utf-8")}\n')
-            except UnicodeEncodeError:
-                print(f'\n-SKIP->>> {str_radio}: no title display, unicode, no OS language support\n')
-            ghettoApi.blacklist.skipped_in_session_dict[str_radio].append(title)
-
-
-def blacklist_title(str_radio, rec_dst):
-    """Disassemble path to get file, title name from path string.
-
-    :params: str_radio: name
-    :params: rec_dst: absolute path to user file
-    :returns: title to compare it with blacklist
-    :rtype: str
-    """
-    try:
-        head, tail = os.path.split(rec_dst)
-        tail_list = tail.split('.')
-        title = tail_list[0]
-    except Exception as error:
-        print(f"Unknown error in blacklist_title(): {str_radio} {error}.")
-        return False
-    ghettoApi.blacklist.recorder_new_title_dict[str_radio] = title
-    return title
+    remove_dst(recorder_dst, bin_writer)
+    copy_src_dst(recorder_dst, recorder_src, buf_size)
+    print(f'\n-WRITE->>> {str_radio}: {recorder_dst.encode("utf-8")}\n')
 
 
 def remove_dst(rec_dst, bin_writer):
@@ -218,34 +182,6 @@ def write_recorder(chunk, bin_writer):
             bin_writer.write(chunk)
         except ValueError:
             pass
-
-
-def write_queue_listen(str_radio, chunk, block=None):
-    """External module can write to queue.
-    Will be redirected local audio, if inet stream is blacklisted.
-    (A) 'block'. wait. Reconnect a broken download. Stops delivery until Browser in connected.
-    (B) 'None' nowait. Empty the Queue, if it is full, and write a single chunk. Delivery! Browser connected or not.
-
-    :params: str_radio: name
-    :params: chunk: binary part of http response stream
-    """
-    if block:
-        while ghettoApi.audio.audio_stream_queue_dict[str_radio].full():
-            sleep(.1)
-    else:
-        if ghettoApi.audio.audio_stream_queue_dict[str_radio].full():
-            drain_queue_listen(str_radio)
-
-    ghettoApi.audio.audio_stream_queue_dict[str_radio].put(chunk)
-
-
-def drain_queue_listen(str_radio):
-    """Empty Queue. Else write to queue blocks caller.
-
-    :params: str_radio: name
-    """
-    while not ghettoApi.audio.audio_stream_queue_dict[str_radio].empty():
-        ghettoApi.audio.audio_stream_queue_dict[str_radio].get()
 
 
 def this_time():

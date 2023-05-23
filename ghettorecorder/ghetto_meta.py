@@ -6,7 +6,7 @@
 :methods: metadata_header_info: write header info to API for other modules to use #
 :methods: metadata_icy_info: extract binary meta info from response #
 :methods: metadata_get_display_extract: convert to string and clean it
-:methods: metadata_get_display_info: pre switch to filter out titles from u nreliable and wrong metadata responses
+:methods: metadata_get_display_info: pre switch to filter out titles from u unreliable and wrong metadata responses
 :methods: remove_special_chars: clean string for writing on OS fs
 """
 
@@ -20,7 +20,7 @@ from collections import namedtuple
 from urllib.request import urlopen, Request
 
 import ghettorecorder.ghetto_utils as ghetto_utils
-from ghettorecorder.ghetto_api import ghettoApi
+# from ghettorecorder.ghetto_api import ghettoApi
 
 os.environ['SSL_CERT_FILE'] = certifi.where()
 context_ssl = ssl.create_default_context(cafile=certifi.where())
@@ -52,8 +52,9 @@ class MetaData:
                             validate_header_data(request.headers['icy-genre']),
                             validate_header_data(request.headers['icy-url']),
                             )
-        ghettoApi.info.header_dict[str_radio] = header
-        return self.header_info_dict
+        # ghettoApi.audio.audio_stream_content_type_dict[str_radio] = header.content_type
+        # ghettoApi.info.header_dict[str_radio] = header
+        return header
 
     def meta_get(self, url, str_radio, radio_dir, stream_suffix, bit_rate, user_agent):
         """Receive and process metadata. Prone to UrlError Timeout.
@@ -74,14 +75,14 @@ class MetaData:
         if not response:
             return
 
+        header_info_dict = self.metadata_header_info(response, str_radio, request_time, bit_rate)
         try:
-            self.metadata_header_info(response, str_radio, request_time, bit_rate)
             icy_info = metadata_icy_info(response, str_radio)
             self.title_path, self.title = title_path_build(icy_info, url, radio_dir, stream_suffix)
-        except AttributeError:
+        except (AttributeError,):  #
             return AttributeError  # minor
         except Exception as e:
-            print(f' ---> meta_get() {str_radio}, exception info: {type(e).__name__} , {url}')
+            print(f' ---> meta_get() {str_radio}, exception info: {type(e).__name__} , {url} {header_info_dict}')
 
 
 def validate_header_data(value):
