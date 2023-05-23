@@ -1,18 +1,20 @@
-"""Update a json dict file in intervals, like it eisenradio in database does.
-All lists are stored in memory. Write to fs list if change occurs. Updates mem list.
+"""Recorder may write only if current title is not in blacklist.
 
-:methods: start_ghetto_blacklist_writer_daemon: run the thread for writing blacklists
-:methods: run_blacklist_writer: loop to run 'update_radios_blacklists()'
-:methods: update_radios_blacklists: read blacklist file and update it if recorder got a new title
-:methods: skipped_in_session(radio): recorder refused to write blacklisted titles n-times
- """
+| Update a json dict file in intervals, like it eisenradio in database does.
+| All radio instance lists are stored in memory. A copy of the json file.
+| Write to fs json dictionary if change occurs. Updates mem list.
+
+| All communication via multiprocessor queues.
+| Blacklist module reads title from radio instance
+| and disables the radio write attribute, if json blacklist title matches.
+"""
 import os.path
 import time
-import copy
 import json
 import threading
 from pathlib import Path
 
+import ghettorecorder.ghetto_procenv as procenv
 from ghettorecorder.ghetto_api import ghettoApi
 
 
@@ -22,6 +24,7 @@ class Helper:
         self.config_file_radio_url_dict = {}
         self.blacklist_name = ''
         self.blacklist_dir = ''  # changed if settings GLOBAL 'save_to_dir' changes, blacklist_dir is that dir
+        self.title_wait_blacklist_dct = {}
 
 
 helper = Helper()
@@ -29,6 +32,9 @@ helper = Helper()
 
 def init(**kwargs):
     """kwargs is the dump of callers instances dict
+    Blacklist is driven by the main() thread, com with procs via com_in, com_out of instance.
+    com_in is eval, exec
+    com_out delivers the result of eval, or None if exec is done, or error msg
     """
     helper.blacklist_name = kwargs['blacklist_name']
     helper.blacklist_dir = kwargs['radios_parent_dir']
@@ -48,7 +54,7 @@ def blacklist_enable(file_name):
     - call to write a new or update an existing blacklist with radios from config file
     - loads the reader json string from written file into the blacklist dictionary
     - writes the blacklist file name to the api, blacklist writer can update file
-    - starts the blacklist writer daemon
+    - starts the blacklist writer daemon --> update, no daemon this guy can keep running after prog kill
 
     :params: blacklist_name: name
      """
@@ -139,7 +145,7 @@ def update_blacklist(path):
 
 def start_ghetto_blacklist_writer_daemon():
     """Start a thread, runs forever"""
-    threading.Thread(name="ghetto_blacklist_writer", target=run_blacklist_writer, daemon=True).start()
+    threading.Thread(name="ghetto_blacklist_writer", target=run_blacklist_writer, daemon=False).start()
     print(".. blacklist writer daemon started\n")
 
 
@@ -147,24 +153,59 @@ def run_blacklist_writer():
     """loop, read "recorder_new_title_dict" in api and update json dict file for next session plus
     'ghettoApi.blacklist.all_blacklists_dict[str_radio]'
     """
+    sleep_sec = 10
     while not ghettoApi.blacklist.stop_blacklist_writer:
+        update_recorder_new_title_dict()
         update_radios_blacklists()
 
-        for _ in range(15):
+        for _ in range(sleep_sec):
             if ghettoApi.blacklist.stop_blacklist_writer:
                 break
             time.sleep(1)
 
 
+def update_recorder_new_title_dict():
+    """Collect new_title attribute of all instances.
+    Here we decide if updater writes new title to blacklist or not.
+
+    If title not in blacklist, wait until next title to update blacklist.
+    Recorder can write the title
+    """
+    radio_lst = [radio for radio in ghettoApi.radio_inst_dict.keys()]
+    upd_blacklist_dct = ghettoApi.blacklist.recorder_new_title_dict  # updater writes to blacklist
+    all_black_dct = ghettoApi.blacklist.all_blacklists_dict
+
+    for radio in radio_lst:
+        title = procenv.radio_attribute_get(radio=radio, attribute='new_title')
+        title_wait = helper.title_wait_blacklist_dct
+        if radio not in title_wait.keys():
+            title_wait[radio] = None
+
+        if title in all_black_dct[radio]:
+            disable_recorder_write_file(radio)  # disable is valid for one call to 'copy_dst' method in instance
+            upd_blacklist_dct[radio] = ''
+            continue
+
+        if title_wait[radio] != title:  # await next title to blacklist the 'written' title
+            upd_blacklist_dct[radio] = title_wait[radio]  # updater writes mem and json fs, recorder wrote old title
+            title_wait[radio] = title
+
+
+def disable_recorder_write_file(radio):
+    """"""
+    procenv.radio_attribute_set(radio=radio, attribute='recorder_file_write', value='False')
+
+
 def update_radios_blacklists():
     """Compare recorder_new_title_dict['radio5'] with all_blacklists_dict['radio5']"""
-    # make a copy of dict to prevent 'RuntimeError: dictionary changed size during iteration'
-    recorder_dict_cp = copy.deepcopy(ghettoApi.blacklist.recorder_new_title_dict)
 
-    for radio, new_title in recorder_dict_cp.items():
-        if new_title not in ghettoApi.blacklist.all_blacklists_dict[radio]:
-            ghettoApi.blacklist.all_blacklists_dict[radio].append(new_title)
-            print(f" -> blacklist {radio}: {new_title.encode('utf-8')} [skipped {skipped_in_session(radio)}]")
+    for radio, new_title in ghettoApi.blacklist.recorder_new_title_dict.items():
+        if new_title and new_title not in ghettoApi.blacklist.all_blacklists_dict[radio]:
+            # json seems to write sporadic garbage if list is empty
+            if not type(ghettoApi.blacklist.all_blacklists_dict[radio]) is list:
+                ghettoApi.blacklist.all_blacklists_dict[radio] = []
+            ghettoApi.blacklist.all_blacklists_dict[radio].append(new_title)  # AttributeError: 'dict' object has no
+            print(f" -> blacklist {radio}: {new_title.encode('utf-8')}")
 
             blacklist_file = os.path.join(helper.blacklist_dir, helper.blacklist_name)
 
@@ -174,12 +215,3 @@ def update_radios_blacklists():
             except OSError as error:
                 msg = f"\n\t--->>> error in update_radios_blacklists(), can not create {error} {blacklist_file}"
                 print(msg)
-
-
-def skipped_in_session(radio):
-    """Count skipped file writes.
-
-    :params: radio: name of radio
-    :returns: number of not written files, due to blacklist
-    """
-    return len(ghettoApi.blacklist.skipped_in_session_dict[radio])
