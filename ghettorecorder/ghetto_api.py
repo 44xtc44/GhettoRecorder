@@ -1,16 +1,4 @@
-"""
-- Modules use the attributes to communicate with other modules. Web server reads queue, switch on recorder ... .
-- Modules can change attributes of the instance who called them, and other instances.
-This is true, if the instance is created in 'radio_inst_dict'.
-
-::
-
-    from ghetto_api import ghetto_api
-
-    ghettoApi.radio_inst_dict[radio] = GhettoRecorder(radio, url)
-    ghettoApi.radio_inst_dict[radio].runs_record = True
-    ghettoApi.audio.audio_stream_queue_dict[radio] = queue.Queue()
-
+"""Modules use the attributes to communicate with other modules.
 """
 
 
@@ -63,14 +51,15 @@ class GhettoApi:
             self.audio_stream_content_type_dict = {}
 
     class BlackList:
+        # keep it simple for mp, queue updates process local inherited api (dead) dicts, instance think all is ok
         def __init__(self):
             self.blacklist_dir = ""
             self.blacklist_name = ""
-            self.blacklist_enable = False
-            self.all_blacklists_dict = {}
+            self.blacklist_enable = False  # input instance if multiprocessing, recorder must know
+            self.all_blacklists_dict = {}  # input instance, bl json radio list
             self.stop_blacklist_writer = False
             self.skipped_in_session_dict = {}
-            self.recorder_new_title_dict = {}
+            self.recorder_new_title_dict = {}  # output instance
 
     class Err:
         def __init__(self):
