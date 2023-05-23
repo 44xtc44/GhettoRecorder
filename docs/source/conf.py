@@ -8,11 +8,16 @@ sys.path.insert(0, os.path.abspath('../..'))
 # pip install -U sphinx
 # !!! indentation of sphinx is mostly 3 leading spaces, code 4, block need one free line above and colon for head
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+# pip install -U sphinx
+# pip install sphinx-rtd-theme
+# pip install sphinxcontrib-napoleon
+# Use sphinx-apidoc to build your API documentation:
+# $ cd docs
 # sphinx-apidoc -f -o source/ ../ghettorecorder/
 # make html
 
 project = 'GhettoRecorder'
-copyright = '2022, René Horn'
+copyright = 'MIT 2023, René Horn'
 author = 'René Horn'
 # release = '2.1'
 
@@ -23,7 +28,9 @@ author = 'René Horn'
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel'
 ]
+
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -51,7 +58,7 @@ html_theme = 'sphinx_rtd_theme'
 pygments_style = 'sphinx'
 
 html_static_path = ['_static']
-html_logo = "ghetto_logo.png"
+html_logo = "./_static/ghetto_logo.png"
 html_logo_only = True
 html_display_version = False
 html_css_files = [
