@@ -12,7 +12,15 @@ Functions
 import os
 import shutil
 import getpass
-from ghettorecorder.api import ghettoApi
+from ghettorecorder.ghetto_api import ghettoApi
+
+
+class Helper:
+    def __init__(self):
+        self.config_dir = ''  # caller can import the path, useful for blacklist path
+
+
+helper = Helper()
 
 
 def container_setup():
@@ -22,6 +30,8 @@ def container_setup():
         variable must be set in package config file Dockerfile or snapcraft.yaml
         change and create the default (parent) record path
         copy settings.ini to that path
+
+    :returns: True if container
     """
     is_container = False
     is_snap_container = 'GHETTORECORDER_SNAP' in os.environ   # var must be set in package config, some value
@@ -43,10 +53,11 @@ def container_setup():
 
 def container_config_dir(container):
     """ assemble the path to new config dir (settings.ini and blacklist)
+    | 'get user' - create dir under home folder for snap
+    | save path for caller to read later
 
-    variable
-       get user - create dir under home folder for snap
-     """
+    :params: container: either snap or docker
+    """
     if container == 'SNAP':                                   # SNAP
         username = getpass.getuser()
         print('Hello, ' + username)
@@ -55,6 +66,7 @@ def container_config_dir(container):
         ghetto_folder = os.path.join('/tmp', 'GhettoRecorder')  # DOCKER
 
     create_config_env(ghetto_folder)
+    helper.container_path = ghetto_folder
 
 
 def create_config_env(ghetto_folder):
