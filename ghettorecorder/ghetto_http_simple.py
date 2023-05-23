@@ -1,6 +1,5 @@
 """
 """
-
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -42,20 +41,16 @@ class MiniHandler(BaseHTTPRequestHandler):
     radio_name = ""
     content_type = ''
 
-    def header_transmit(self):
-        self.send_response(200)
-        self.send_header("Content-type", self.content_type)
-        self.send_header("Cache-Control", "no-cache,no-store")  # up to browser
-        # browser accepts connection in localhost network without ssl (https)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-
     def do_GET(self):
-        self.header_transmit()
+        self.send_response(200)
+        self.send_header('Content-type', self.content_type)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'no-cache,no-store')  # up to browser
+        self.end_headers()
         # this will be shown if a browser connects to us
-        msg = f'\tHttp connection for local buffer - {self.radio_name} - established. {self.content_type}' \
-              f'\n\tAddress: me("http://localhost:{self.port}") you{self.client_address}'
-        print(msg)
+        # msg = f'\tHttp connection for local buffer - {self.radio_name} - established. {self.content_type}' \
+        #       f'\n\tAddress: me("http://localhost:{self.port}") you{self.client_address}'
+        # print(msg)
 
         while 1:
             try:
