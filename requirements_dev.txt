@@ -1,7 +1,7 @@
 pytest>=6.0
 pytest-cov>=2.0
-mypy>=0.9.10
 flake8>=3.9
-tox>=3.24
+tox>=4.0
 sphinx
 sphinx_rtd_theme
+sphinxcontrib_napoleon

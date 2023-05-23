@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "GhettoRecorder"
 version = "3.0"
-description = "command line internet radio grabber with listen capabilities"
+description = "multiprocessor capable internet radio grabber"
 authors = [{name = "René Horn", email = "rene_horn@gmx.net" }]
 keywords = ['internet radio grabber']
 license = {text = "MIT"}
@@ -21,9 +21,9 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Capture/Recording",
 ]
 dependencies = [
-	"aacRepair>=0.7",
-	"certifi>=2022.12.07",
-	"configparser>=5.0.2",
+	"aacRepair",
+	"certifi",
+	"configparser",
 ]
 
 [project.urls]
@@ -32,4 +32,5 @@ documentation = "https://GhettoRecorder.readthedocs.io/"
 repository = "https://github.com/44xtc44/GhettoRecorder"
 
 [project.scripts]
-ghettorecorder = "ghettorecorder.cmd:main"
+ghetto_url = "ghettorecorder.__main__:main"
+ghetto_cmd = "ghettorecorder.cmd:main"
