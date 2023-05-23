@@ -33,25 +33,29 @@ Bit Groups
        M        31-32     2 	Emphasis [00 - none] [01 - 50/15 ms] [10 - reserved] [11 - CCIT J.17]
        O        33-48    16 	CRC if existing, D 16 set
        ===== ========= ====== ====================================================================================
+
        frame length layer 1: FrameLengthInBytes = (12 * BitRate / SampleRate + Padding) * 4
        frame length layer 2: FrameLengthInBytes = 144 * BitRate / SampleRate + Padding
 
-        //*************************************************************************************
-        //  This reference data is from MPEGAudioInfo app
-        // Samples per Frame / 8
-        static const u32 m_dwCoefficients[2][3] =
-        {
-           {  // MPEG 1
-              12,   // Layer1   (must be multiplied with 4, because of slot size)
-              144,  // Layer2
-              144   // Layer3
-           },
-           {  // MPEG 2, 2.5
-              12,   // Layer1   (must be multiplied with 4, because of slot size)
-              144,  // Layer2
-              72    // Layer3
-           }
-        };
+The next line is C code::
+
+       //*************************************************************************************
+       //  This reference data is from MPEGAudioInfo app
+       // Samples per Frame / 8
+       static const u32 m_dwCoefficients[2][3] =
+       {
+          {  // MPEG 1
+             12,   // Layer1   (must be multiplied with 4, because of slot size)
+             144,  // Layer2
+             144   // Layer3
+          },
+          {  // MPEG 2, 2.5
+             12,   // Layer1   (must be multiplied with 4, because of slot size)
+             144,  // Layer2
+             72    // Layer3
+          }
+       };
+
 """
 import io
 import ghettorecorder.audio_conf as audio_conf
