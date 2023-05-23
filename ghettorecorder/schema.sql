@@ -12,7 +12,6 @@ CREATE TABLE "GRAction" (
 	"id"	INTEGER NOT NULL,
 	"created"	TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	"stop" INTEGER,
-    "http_srv" INTEGER,
     "radio_name" TEXT NOT NULL,
     "runs_meta" INTEGER,
     "runs_record" INTEGER,
