@@ -5,11 +5,10 @@ import sys
 import time
 import signal
 import multiprocessing as mp
-import concurrent.futures
 from pathlib import Path
 
 import ghettorecorder.ghetto_menu as ghetto_menu
-import ghettorecorder.ghetto_procenv as ghetto_procenv
+import ghettorecorder.ghetto_procenv as procenv
 import ghettorecorder.ghetto_blacklist as ghetto_blacklist
 import ghettorecorder.ghetto_container as container
 from ghettorecorder.ghetto_api import ghettoApi
@@ -33,6 +32,7 @@ class Entry:
         self.config_file_radio_url_dict = {}  # all {name: url}
         self.config_file_settings_dict = {}  # blacklist, folders
         self.radio_selection_dict = {}  # selection to rec
+        self.shutdown = False
         # HTTP server
         self.no_err_radios = []  # started radios without errors in err dict
 
@@ -46,6 +46,7 @@ def init():
     """
     config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
     is_container = container.container_setup()
+    print('is_container: ', is_container)
     if is_container:
         config_dir = container.helper.config_dir
 
@@ -65,7 +66,7 @@ def run_radios(radio_dict):
     :params: radio_dict: radios with url from menu
     """
     for radio, url in radio_dict.items():
-        ghetto_procenv.radio_instance_create(radio, url, **entry.__dict__)
+        procenv.radio_instance_create(radio, url, **entry.__dict__)
 
     url_timeout = 15
     start = time.perf_counter()
@@ -104,37 +105,29 @@ def show_radios_urls_formatted():
     print('\n\t---')
 
 
-def termination_accelerator(one_radio_instance):
-    """Threads closing instances overlapping with a simple function call.
-
-    :params: one_radio_instance: single instance to cancel
-    """
-    one_radio_instance.cancel()
-
-
 def signal_handler(sig, frame):
     """ Terminal: catch Keyboard Interrupt ctrl + c, "signal.signal()" instances listen.
 
     :params: sig:  SIGTERM
     :params: frame: SIGINT
     """
-    ghetto_procenv.procenv.proc_end()
-    ghetto_procenv.procenv.thread_shutdown = True
-    ghetto_procenv.procenv.thread_end()
-    [thread.cancel() for thread in ghetto_procenv.procenv.thread_list]  # db thread
     ghettoApi.blacklist.stop_blacklist_writer = True
+    shutdown()
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = []
-        for radio in ghettoApi.radio_inst_dict.keys():
-            future = [executor.submit(termination_accelerator, ghettoApi.radio_inst_dict[radio])]
-        concurrent.futures.wait(future)
     print('\nThank you for using the GhettoRecorder module.')
     sys.exit(0)
 
 
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
+
+
+def shutdown():
+    """"""
+    radio_lst = procenv.radio_instances_get()
+    for radio in radio_lst:
+        procenv.del_radio_instance(radio)
+    entry.shutdown = True
 
 
 def main():
