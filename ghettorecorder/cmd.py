@@ -46,9 +46,9 @@ def init():
     """
     config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
     is_container = container.container_setup()
-    print('is_container: ', is_container)
     if is_container:
         config_dir = container.helper.config_dir
+        print('config_dir ', config_dir)
 
     ghettoApi.path.config_dir = config_dir
     ghettoApi.path.config_name = entry.config_name
