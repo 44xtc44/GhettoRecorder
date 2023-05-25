@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 # ###############################################
 
-pack_name = "GhettoRecorder"
+pack_name = "ghettorecorder"
 pack_version = "3.0.0"
 pack_description = "Inet radio grabber"
 
