@@ -326,7 +326,7 @@ def write_config_file(file_content):
     """
     """
     file = entry.config_name
-    folder = entry.dir_name
+    folder = entry.radios_parent_dir
     conf_path = os.path.join(folder, file)
     with open(conf_path, 'w', encoding='utf-8') as writer:
         writer.write(file_content)
