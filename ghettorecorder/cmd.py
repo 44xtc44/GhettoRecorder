@@ -45,10 +45,10 @@ def init():
     | Container creates folders in places where writing is allowed.
     """
     config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    is_container = container.container_setup()
-    if is_container:
-        config_dir = container.helper.config_dir
-        print('config_dir ', config_dir)
+    container_dir = container.container_setup()
+    if container_dir:
+        config_dir = container_dir
+        print('container config_dir ', config_dir)
 
     ghettoApi.path.config_dir = config_dir
     ghettoApi.path.config_name = entry.config_name

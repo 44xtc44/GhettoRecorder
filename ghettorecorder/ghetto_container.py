@@ -15,14 +15,6 @@ import getpass
 from ghettorecorder.ghetto_api import ghettoApi
 
 
-class Helper:
-    def __init__(self):
-        self.config_dir = ''  # caller can import the path, useful for blacklist path
-
-
-helper = Helper()
-
-
 def container_setup():
     """ return False if no package specific env variable is set
 
@@ -33,22 +25,19 @@ def container_setup():
 
     :returns: True if container
     """
-    is_container = False
+    folder = False
     is_snap = 'SNAP' in os.environ
     is_docker = 'DOCKER' in os.environ
 
     if is_snap:
         get_env_snap()
-        is_container = True
-        container_config_dir('SNAP')
-        return is_container
+        folder = container_config_dir('SNAP')
 
     if is_docker:
         get_env_docker()
-        is_container = True
-        container_config_dir('DOCKER')
-        return is_container
-    return is_container
+        folder = container_config_dir('DOCKER')
+
+    return folder
 
 
 def get_env_snap():
@@ -84,7 +73,7 @@ def container_config_dir(container):
         ghetto_folder = os.path.join('/tmp', 'GhettoRecorder')  # DOCKER
 
     create_config_env(ghetto_folder)
-    helper.container_path = ghetto_folder
+    return ghetto_folder
 
 
 def create_config_env(ghetto_folder):
