@@ -10,7 +10,7 @@ pack_version = "3.0.0"
 pack_description = "Inet radio grabber"
 
 INSTALL_REQUIRES = ['aacRepair', 'certifi', 'configparser']
-PYTHON_REQUIRES = '==3.6'
+PYTHON_REQUIRES = '3.6.9'
 
 setuptools.setup(
 

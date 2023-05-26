@@ -10,7 +10,7 @@ authors = [{name = "René Horn", email = "rene_horn@gmx.net" }]
 keywords = ['internet radio grabber']
 license = {text = "MIT"}
 readme = "README.rst"
-requires-python = "==3.6"
+requires-python = "3.6.9"
 
 
 classifiers = [
