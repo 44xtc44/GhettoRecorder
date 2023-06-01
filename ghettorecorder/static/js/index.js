@@ -14,12 +14,9 @@
 *   This is only possible due to the local server, where we circumvent the Browser CORS restrictions.
 * You can deliver a whole multimedia animated show with svg, video, cartoons, 3d plot, blender ... to sell your product.
 */
-var nameRadioPlays = false;  // (browser audio element) <- (http server method loop) <- (py instance.audio_out queue)
-var waitShutdownIntervalId = 0;  // get internal id of setInterval to disable setInterval(ajax_wait_shutdown, 2500);
-
 window.addEventListener('load', function() {
     /**
-     * Html loaded, can get id and class.
+     * Html loaded, can get id and class now.
      */
     console.log('All assets are loaded');
     const audioR = document.getElementById('audioR');
@@ -28,7 +25,17 @@ window.addEventListener('load', function() {
     setInterval(ajax_title_get, 30000);
     const canvasBalloon = document.getElementById('canvasBalloon');
 })
-
+;
+class Glob{
+  /* *
+   * global variables container, init at the bottom of this script
+   */
+  constructor() {
+    this.playingRadio = false; // (browser audio element) <- (http server method loop) <- (py instance.audio_out queue)
+    this.waitShutdownIntervalId = 0;  // store id of setInterval to disable setInterval(ajax_wait_shutdown, 2500);
+  }
+}
+;
 class HiddenOnOff{
     /**
      * Switch the visibility of an element on/off. Javascript has no Py getattr, setattr. We save elem names as key.
@@ -55,7 +62,7 @@ class HiddenOnOff{
     this.isSwitchedOn['pEditBlacklist'] = true;
   };
   update(options) {
-    // set explicit
+    // set action explicit
     if(options === undefined) alert('HiddenOnOff update no options');  // just show how this options guy is working
     if(options.element === undefined) alert('HiddenOnOff update no element');
     let obj = document.getElementById(options.element);
@@ -94,10 +101,11 @@ function setAudioContextVisual() {
     /**
      * Create audio nodes and connect them.
      */
-    audioContext = new AudioContext();
+    audioContext = new AudioContext();  // instance IS same as audioR, but then we must use JS to apply controls
     gainNode = audioContext.createGain();
     analyserNode = audioContext.createAnalyser();
-    audioSource = audioContext.createMediaElementSource(audioR);
+    audioSource = audioContext.createMediaElementSource(audioR);  // audioR elem defined in index.html to show controls
+    // connect audio network client of index.html with analyser, with gain control and then with computer speaker
     audioSource.connect(analyserNode).connect(gainNode).connect(audioContext.destination);
 }
 ;
@@ -118,39 +126,50 @@ function ajax_switch_radio(radio_btn_id) {
     xhr.open('POST', '/radio_btn_id');
 
     xhr.onload = function () {
-        console.log('xhr r ', xhr.response);
-        var data = JSON.parse(xhr.responseText);
-        console.log('resp r ', data.content, data.port);
-        if (data.radio_name) {nameRadioPlays = data.radio_name;};
-
-          let divRadioBtn=document.getElementsByClassName('divRadioBtn');  /* radio buttons */
-          for(var i = 0; i < divRadioBtn.length; i++){
-            divRadioBtn[i].style.backgroundColor = '#f9f9f9ff'; divRadioBtn[i].style.color = 'brown';
-          }
-          for (const elem of data.recorder) {
-            let rec=document.getElementById('div' + elem);
-            rec.style.color='#f9f9f9ff'; rec.style.backgroundColor='#fd7f7f';
-          }
-          let pMsg=document.getElementById('pMsg');  /* bottom page footer */
-          pMsg.innerHTML='';
-          pMsg.innerHTML=xhr.response;
-          pMsg.style.backgroundColor='#cf4d35ff';
-          pMsg.style.fontFamily='PT Sans, arial';
-          pMsg.style.padding='10px';pMsg.style.color='#f9f9f9ff';
-
-        if (data.content == "no_response") {  /* radio shall run but is not responding */
-          console.log('no_response ', data.radio_name);
-          let radio = document.getElementById("div" + data.radio_name);
-          radio.style.backgroundColor='black';
-          return;
-        }
-        if (data.radio_name == null) {return;}  /* other radio removed, returned dict is empty, Null*/
-          /* enable sound */
-          let audioR = document.getElementById('audioR'); console.log('srv', 'http://localhost:' + data.port);
-          nameRadioPlays=data.radio_name; console.log('nameRadioPlays ', nameRadioPlays);
-          audioR.src='http://localhost:1242/sound/' + data.radio_name;
-          audioR.load();audioR.play();
-          nameRadioPlays = data.radio_name;
+      console.log('xhr r ', xhr.response);
+      var data = JSON.parse(xhr.responseText);
+      console.log('resp r ', data.content);
+      // response from stop request, dict all null, except radio_name is: -randio
+      if (!data.radio_dir) {
+        // set var for interval title scan
+        glob.playingRadio = false;
+      }
+      /* radio buttons */
+      let divRadioBtn=document.getElementsByClassName('divRadioBtn');
+      // set all uniform
+      for(var i = 0; i < divRadioBtn.length; i++){
+        divRadioBtn[i].style.color = '#000000';
+        divRadioBtn[i].style.backgroundColor = '#f9f9f9ff';
+      }
+      // adapt recorder active buttons
+      for (const elem of data.recorder) {
+        let rec=document.getElementById('div' + elem);
+        rec.style.color='#f9f9f9ff';
+        rec.style.backgroundColor='#fd7f7f';
+      }
+      /* bottom page footer */
+      let pMsg=document.getElementById('pMsg');
+      pMsg.innerHTML='';
+      pMsg.innerHTML=xhr.response;
+      pMsg.style.backgroundColor='#cf4d35ff';
+      pMsg.style.fontFamily='PT Sans, arial';
+      pMsg.style.padding='10px';pMsg.style.color='#f9f9f9ff';
+      /* radio shall run but is not responding */
+      if (data.content == "no_response") {
+        console.log('no_response ', data.radio_name);
+        let radio = document.getElementById("div" + data.radio_name);
+        radio.style.backgroundColor='black';
+        return;
+      }
+      /* enable sound */
+      let audioR = document.getElementById('audioR');
+      // stopped radio btn has (-) a minus in front of the name
+      if (data.radio_name == radio_btn_id) {  // data.radio_name is ajax return value
+        audioR.src='http://localhost:' + data.server_port + '/sound/' + data.radio_name;
+        audioR.play();
+        // set var for interval title scan
+        glob.playingRadio = data.radio_name;
+      }
     };
     xhr.send(radio_btn_id);
 }
@@ -159,19 +178,20 @@ function ajax_title_get() {
     /**
      * AJAX - active radio title display.
      */
-    if (!nameRadioPlays) {return;}
+    console.log('glob.playingRadio ', glob.playingRadio);
+    if (!glob.playingRadio) {return;}
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/title_get');
 
     xhr.onload = function () {
       var data = JSON.parse(xhr.responseText);
       console.log('resp t ', data.title);
-      if (!data.title) {return;} /**/;
+      if (!data.title) {return;}
         let pTitle=document.getElementById('pTitle');
         pTitle.style.fontFamily='PT Sans, arial';pTitle.style.padding='10px';
-        pTitle.innerHTML=''; pTitle.innerHTML= '[' + nameRadioPlays + '] ' + data.title;
+        pTitle.innerHTML=''; pTitle.innerHTML= '[' + glob.playingRadio + '] ' + data.title;
     };
-    xhr.send(nameRadioPlays);
+    xhr.send(glob.playingRadio);
 }
 ;
 function ajax_get_config_file() {
@@ -271,7 +291,7 @@ function ajax_server_shutdown() {
       pMsg.innerHTML = data.server_shutdown;
       sMsgShutDown.style.backgroundColor = 'lightGreen';
       sMsgShutDown.innerHTML = data.server_shutdown;
-      waitShutdownIntervalId = setInterval(ajax_wait_shutdown, 2500);
+      glob.waitShutdownIntervalId = setInterval(ajax_wait_shutdown, 2500);
     };
     xhr.send();
 }
@@ -297,15 +317,15 @@ function ajax_wait_shutdown() {
       sMsgShutDown.innerHTML = data.wait_shutdown;
     };
     xhr.ontimeout = function (e) {
-        // request timed out
-        pMsg.innerHTML = '';
-        pMsg.innerHTML = 'down';
+      // request timed out
+      pMsg.innerHTML = '';
+      pMsg.innerHTML = 'down';
 
-        sMsgShutDown.style.backgroundColor = '#fd7f7f';
-        sMsgShutDown.innerHTML = '';
-        sMsgShutDown.innerHTML = 'down';
-        // disable setInterval
-        clearInterval(waitShutdownIntervalId);
+      sMsgShutDown.style.backgroundColor = '#fd7f7f';
+      sMsgShutDown.innerHTML = '';
+      sMsgShutDown.innerHTML = 'down';
+      // disable setInterval
+      clearInterval(glob.waitShutdownIntervalId);
     };
     xhr.send();
 }
@@ -313,3 +333,4 @@ function ajax_wait_shutdown() {
 
 /* init class */
 hiddenOnOff = new HiddenOnOff()
+glob = new Glob()

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="static/js/index.js" charset="utf-8"></script>
     <script src="static/js/animate.js" charset="utf-8"></script>
-    <link rel="icon" href="static/images/favicon.svg">
+    <link rel="icon" href="static/images/ghetto_url.svg">
     <link rel="stylesheet" href="static/css/style.css">
     <link rel='preconnect' href='https://fonts.googleapis.com'>
     <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
@@ -14,9 +14,8 @@
   </head>
 
   <body>
-    <div id='divOverlay' onclick="hiddenOnOff.update({element:'divOverlay',set:false});audioEnable()"></div>
 
-    <div id="divBalloon" >
+    <div id="divBalloon">
       <div class=contCanvasBalloon>
         <div id=divCanvasBalloon onclick="callAnimation();">
           <canvas id='canvasBalloon'></canvas>
@@ -116,29 +115,29 @@
           <div id="divEditConfig" class="hiddenDiv">
             <textarea name="configFileEdit" id="configFileEdit" rows="25" cols="80">
             </textarea>
-            <button type="button" onclick="ajax_write_config_file();">send</button>
+            <button class="btnSend" type="button" onclick="ajax_write_config_file();">save</button>
             <p id="pConfigResponse"></p>
 
           </div>
           <div id="divEditBlacklist" class="hiddenDiv">
-            <textarea name="blacklistFileEdit" id="blacklistFileEdit" rows="50" cols="80">
+            <textarea name="blacklistFileEdit" id="blacklistFileEdit" rows="25" cols="80">
             </textarea>
-            <button type="button" onclick="ajax_write_blacklist_file();">send</button>
+            <button class="btnSend" type="button" onclick="ajax_write_blacklist_file();">save</button>
             <p id="pBlacklistResponse"></p>
 
           </div>
 
-            <p class="pEdit">
+            <p class="pEdit" id="pCopyRight">
               <br>GhettoRecorder MIT license.
               <br>© René Horn 2023
             </p>
 
         </div>
 
-        <!-- hint <div class='svgImageSky'> <img src='data:image/svg+xml;base64, !imagedata '/>  </div> -->
         <p class=pMid>
           Play local buffer, or start recorder.
         </p>
+
         <div id='divFlexContainer'>
 
             <div class='middle'>
@@ -152,6 +151,11 @@
 
       </div>
 
+    </div>
+    <div id='divOverlay'
+         onclick="hiddenOnOff.update({element:'divOverlay',set:false});
+         audioEnable();
+         ajax_switch_radio('0');">
     </div>
   </body>
 </html>

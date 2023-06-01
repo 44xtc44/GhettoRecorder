@@ -41,7 +41,12 @@ function draw() {
 
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height); // not if second anim in background
     canvasCtx.lineWidth = 2.0;
-    canvasCtx.fillStyle = 'turquoise';
+
+    const gradient = canvasCtx.createLinearGradient(canvas.width/1.5, 0, canvas.width/2, canvas.height);
+    gradient.addColorStop(0, "lightYellow");
+    gradient.addColorStop(1, "turquoise");
+    canvasCtx.fillStyle = gradient; //'turquoise';
+
     canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
     canvasCtx.strokeStyle = 'red';canvasCtx.beginPath();
     var sliceWidth = canvas.width * 1.0 / bufferLength;var x = 0;
