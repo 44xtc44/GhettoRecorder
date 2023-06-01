@@ -1,10 +1,11 @@
+"""Module to operate the radio instances.
+"""
 import os
 import time
-import threading
 import multiprocessing as mp
 
 import ghettorecorder.ghetto_net as net
-from ghettorecorder.__init__ import GhettoRecorder  # without __init__ broken
+from ghettorecorder.__init__ import GhettoRecorder  # without __init__ broken !? [Baustelle]
 from ghettorecorder.ghetto_api import ghettoApi
 
 dir_name = os.path.dirname(__file__)
@@ -13,53 +14,19 @@ mp.set_start_method('spawn', force=True)
 
 class ProcEnv:
     def __init__(self):
-        self.msg_bin = None
-        self.thread_list = []
-        self.process_dct = {}
-        self.port_dct = {}
-        self.thread_shutdown = False  # from cmd
-        self.instance_start_dict = {}
-
-    def proc_end(self):
-        """"""
-        for proc_name in self.process_dct.keys():
-            self.process_dct[proc_name].kill()
-
-    def thread_end(self):
-        for thread in self.thread_list:
-            thread.cancel()
-            thread.join()
+        self.trash_bin = None  # supress useless msg
+        self.instance_start_dict = {}  # radio instances collector
 
 
 procenv = ProcEnv()
 
 
-class FuncThread(threading.Thread):
-    """Thread maker.
-    """
-
-    def __init__(self, name, func_ref, *args, **kwargs):
-        super().__init__()
-        # thread
-        self.name = name
-        self.daemon = True
-        self.cancelled = False
-        # stuff
-        self.func_ref = func_ref  # no ()
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        """_inst.start()"""
-        self.func_ref(*self.args, **self.kwargs)
-        self.cancel()
-
-    def cancel(self):
-        self.cancelled = True
-
-
 def radio_instances_get():
-    """"""
+    """Return list of radio instances.
+    We can connect to the Queues for communication.
+
+    :returns: list of running radio instances
+    """
     r_lst = [radio for radio in ghettoApi.radio_inst_dict.keys()]
     return r_lst
 
@@ -67,28 +34,21 @@ def radio_instances_get():
 def del_radio_instance(radio):
     """
     | Cancel radio instance.
-    | Kill http server for streaming to port ... if any
-    | Delete all dictionary entries. We can start fresh again.
+    | cancel_join_thread(), no graceful shutdown of queue
     """
 
     inst_dct = ghettoApi.radio_inst_dict
     if radio not in inst_dct.keys():
         return
     try:
-        ghettoApi.radio_inst_dict[radio].cancel()
-        ghettoApi.radio_inst_dict[radio].join()
+        radio_run_cmd(radio=radio, cmd='self.cancel()')
         q_lst = [inst_dct[radio].com_in, inst_dct[radio].com_out, inst_dct[radio].audio_out]
         for q in q_lst:
             while not q.empty():
                 q.get()
             q.cancel_join_thread()
         del ghettoApi.radio_inst_dict[radio]
-        if radio in procenv.process_dct.keys():
-            procenv.process_dct[radio].kill()
-        if radio in procenv.process_dct.keys():
-            del procenv.process_dct[radio]
-        if radio in procenv.port_dct.keys():
-            del procenv.port_dct[radio]
+
     except Exception as e:
         print(f'Exception: del_radio_instance ', radio, e)
     print(f'[removed] {radio} from dictionary ')
@@ -96,10 +56,22 @@ def del_radio_instance(radio):
 
 def radio_instance_create(radio, url, **kwargs):
     """Start radio if not exist.
+
+    | Message Queues, com ports, creator of instance (we) attach the queue to instance
+
+    :params: com_in: = mp.Queue(maxsize=1) (radio, [str 'eval' or 'exec'], str 'command') e.g. 'radio_attribute_get'
+    :params: com_out: = mp.Queue(maxsize=1) result tuple (radio, 'eval', result)  result can be error
+    :params: audio_out: = mp.Queue(maxsize=1) port to connect a server, audio data is same as written to disk
+
+    :params: radio: radio
+    :params: url: url
+    :params: kwargs: config, blacklist, path variables
+    :returns: True if instance was created or is running
     """
     if radio in ghettoApi.radio_inst_dict.keys():  # runs already
         return True
-    resp = net.load_url(url)
+
+    resp = net.load_url(url)  # open connection and forget,; reverse in '__main__.get_sound' we release connection
     if not resp:
         print(f'NO connection for instance: {radio} ')
         return False
@@ -110,25 +82,26 @@ def radio_instance_create(radio, url, **kwargs):
         base_dir = kwargs['radios_parent_dir']
         meta, record, listen = kwargs['runs_meta'], kwargs['runs_record'], kwargs['runs_listen']
 
-    ghettoApi.radio_inst_dict[radio] = GhettoRecorder(radio, url)
-    ghettoApi.radio_inst_dict[radio].radio_base_dir = base_dir
-    ghettoApi.radio_inst_dict[radio].runs_meta = meta
-    ghettoApi.radio_inst_dict[radio].runs_record = record
-    ghettoApi.radio_inst_dict[radio].runs_listen = listen
-    ghettoApi.radio_inst_dict[radio].com_in = mp.Queue(maxsize=1)
-    ghettoApi.radio_inst_dict[radio].com_out = mp.Queue(maxsize=1)
-    ghettoApi.radio_inst_dict[radio].audio_out = mp.Queue(maxsize=1)
-    ghettoApi.radio_inst_dict[radio].start()
+    dct = ghettoApi.radio_inst_dict
+    dct[radio] = GhettoRecorder(radio, url)
+    dct[radio].radio_base_dir = base_dir
+    dct[radio].runs_meta = meta
+    dct[radio].runs_record = record
+    dct[radio].runs_listen = listen
+    dct[radio].com_in = mp.Queue(maxsize=1)
+    dct[radio].com_out = mp.Queue(maxsize=1)
+    dct[radio].audio_out = mp.Queue(maxsize=1)
+    dct[radio].start()
     return True
 
 
 def radio_wait_online(radio):
-    """"""
+    """Ask instance for ready status."""
+    in_ = ghettoApi.radio_inst_dict[radio].com_in
+    out_ = ghettoApi.radio_inst_dict[radio].com_out
     start = time.perf_counter()
     timeout = 15
     while 1:  # minimize wait time
-        in_ = ghettoApi.radio_inst_dict[radio].com_in
-        out_ = ghettoApi.radio_inst_dict[radio].com_out
         msg = (radio, 'eval', 'getattr(self, "init_done")')  # tuple
         in_.put(msg)
         done = out_.get()[2]  # tuple
@@ -137,36 +110,62 @@ def radio_wait_online(radio):
         time.sleep(.2)
 
 
+def radio_control_qs_get(radio):
+    """
+    | Queues to process eval, exec commands in multiprocessor instances.
+    | Basic check if radio instance is available.
+
+    :params: radio: instance to connect control queues
+    :returns: tuple of control queues in and out put
+    """
+    if radio not in ghettoApi.radio_inst_dict.keys():
+        return None, None
+    radio_wait_online(radio)
+    in_ = ghettoApi.radio_inst_dict[radio].com_in
+    out_ = ghettoApi.radio_inst_dict[radio].com_out
+    return in_, out_
+
+
 def radio_attribute_get(radio=None, attribute=None):
     """Eval request of instance.
 
-    :params: radio: name
+    :params: radio: name of instance
     :params: attribute: string of attribute name
     """
-    if radio not in ghettoApi.radio_inst_dict.keys():
-        return None
-    radio_wait_online(radio)
-
-    in_ = ghettoApi.radio_inst_dict[radio].com_in
-    out_ = ghettoApi.radio_inst_dict[radio].com_out
-    msg = (radio, 'eval', 'getattr(self, "' + attribute + '")')  # tuple
-    in_.put(msg)
-    return out_.get()[2]  # tuple
+    in_, out_ = radio_control_qs_get(radio)
+    if in_ and out_:
+        msg = (radio, 'eval', 'getattr(self, "' + attribute + '")')  # tuple
+        in_.put(msg)
+        return out_.get()[2]  # tuple
 
 
 def radio_attribute_set(radio=None, attribute=None, value=None):
-    """"""
-    if radio not in ghettoApi.radio_inst_dict.keys():
-        return None
-    radio_wait_online(radio)
-    in_ = ghettoApi.radio_inst_dict[radio].com_in
-    out_ = ghettoApi.radio_inst_dict[radio].com_out
-    in_.put((radio, 'exec', 'setattr(self, "' + attribute + '", ' + value + ')'))
-    procenv.msg_bin = out_.get()[2]  # useless msg, just see it was done
+    """Set only instance Attribute values here.
+
+    :params: radio: name of instance
+    :params: attribute: string of attribute name
+    :params: attribute: string of attribute value
+    """
+    in_, out_ = radio_control_qs_get(radio)
+    if in_ and out_:
+        in_.put((radio, 'exec', 'setattr(self, "' + attribute + '", ' + value + ')'))
+        procenv.trash_bin = out_.get()[2]  # useless msg, just see it was done
+
+
+def radio_run_cmd(radio=None, cmd=None):
+    """Run one or multiple commands string in the radio instance.
+
+    :params: radio: instance of a radio
+    :params: cmd: string of python statement
+    """
+    in_, out_ = radio_control_qs_get(radio)
+    if in_ and out_:
+        in_.put((radio, 'exec', cmd))
+        procenv.trash_bin = out_.get()[2]  # useless msg, just see it was done
 
 
 def user_display_dict_get(radio):
-    """"""
+    """Give user overview. Where are files, header info, which recorder is running."""
     user_display_dct = {'title': None,
                         'bit_rate': None,
                         'radio_dir': None,
