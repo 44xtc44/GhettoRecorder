@@ -1,14 +1,17 @@
 Documentation - GhettoRecorder
 ==============================
-
-command line internet radio grabber with listen capabilities
+| Grab hundreds of radio stations `simultaneously`.
+| Optional Browser Frontend runs on custom Python multithreading HTTP server.
 
 Info
 ----
-| Can read and write removable, network and local storage.
-| Professional AAC Audio File Recovery during operation.
-| Type ``$ ghettorecorder`` to display the menu.
-| Package folder can be copied elsewhere, run ``cmd.py`` from there.
+| Queue communication. Multiprocessor ready.
+| GhettoRecorder class has connectors for external modules.
+| External modul *Blacklisting recorded titles* is already included.
+|
+| Type `$ ghetto_url` to use client server GUI.
+| Type `$ ghetto_cmd` to display the commandline menu.
+| Package folder can be copied elsewhere, run `__main__.py` or `cmd.py`.
 |
 | Multiple menu options are available:
 |   * Custom save path (written to config)
