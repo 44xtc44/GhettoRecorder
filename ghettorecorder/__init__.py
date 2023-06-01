@@ -208,7 +208,7 @@ class GhettoRecorder(threading.Thread):
 
     def radio_exec_loop(self):
         """
-        TUPLE!!! not change values
+        TUPLE!!! Can NOT change values.
 
         rv_tup = (radio, 'eval' or 'exec', 'command')
         """
@@ -397,7 +397,7 @@ class GhettoRecorder(threading.Thread):
         We use this chunk as end, and beginning for the next user file.
         Write last chunk (repair if aac), dump recorder file, reset, write first chunk (repair if aac).
 
-        :methods: copy_dst: includes 'blacklist' logic, dump recorder file to destination or not
+        :methods: copy_dst: dump recorder file to destination or not
         :exception: error handler checks severity of the error; run or exit
         :params: rec_dst: absolute path to user file
         """
@@ -483,7 +483,7 @@ def main(radio='nachtflug', url='http://85.195.88.149:11810'):
                   'com_queue': ghettoApi.radio_inst_dict[radio].audio_out  #
                   }
     import ghetto_http_simple
-    #
+
     proc = mp.Process(target=ghetto_http_simple.run_http, kwargs=param_http)
     proc.start()
     in_.put((radio, 'exec', 'setattr(self, "runs_listen", True)'))
