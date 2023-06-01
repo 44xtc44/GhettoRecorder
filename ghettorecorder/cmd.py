@@ -7,7 +7,7 @@ import signal
 import multiprocessing as mp
 from pathlib import Path
 
-import ghettorecorder.ghetto_menu as ghetto_menu
+import ghettorecorder.ghetto_menu as menu
 import ghettorecorder.ghetto_procenv as procenv
 import ghettorecorder.ghetto_blacklist as ghetto_blacklist
 import ghettorecorder.ghetto_container as container
@@ -18,9 +18,9 @@ mp.set_start_method('spawn', force=True)  # http server process
 
 class Entry:
     def __init__(self):
-        self.http_srv = False
         # file system config
         self.dir_name = os.path.dirname(__file__)  # absolute dir path
+        self.config_dir = ''  # where settings ini is located
         self.config_name = "settings.ini"
         self.blacklist_name = "blacklist.json"
         self.radios_parent_dir = ''  # changed if settings GLOBAL 'save_to_dir' changes, blacklist_dir is also that dir
@@ -32,24 +32,26 @@ class Entry:
         self.config_file_radio_url_dict = {}  # all {name: url}
         self.config_file_settings_dict = {}  # blacklist, folders
         self.radio_selection_dict = {}  # selection to rec
-        self.shutdown = False
-        # HTTP server
+
+        # can be useful if on command line, and want start a http server to stream one of the radio instances local
         self.no_err_radios = []  # started radios without errors in err dict
 
 
 entry = Entry()
 
 
-def init():
+def init_path():
     """File system basic info to find the configuration file.
     | Container creates folders in places where writing is allowed.
     """
     config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+
     container_dir = container.container_setup()
     if container_dir:
         config_dir = container_dir
         print('container config_dir ', config_dir)
 
+    entry.config_dir = config_dir
     ghettoApi.path.config_dir = config_dir
     ghettoApi.path.config_name = entry.config_name
 
@@ -123,40 +125,56 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 def shutdown():
-    """"""
+    """Trigger shutdown of radio instances.
+    """
     radio_lst = procenv.radio_instances_get()
     for radio in radio_lst:
         procenv.del_radio_instance(radio)
-    entry.shutdown = True
 
 
-def main():
-    """"""
-    init()  # config file to api
+def run_ghetto(frontend=None):
+    """
+    | [STATIONS] *config_file_radio_url_dict* {radio: url} from ini; radio = url
+    | [GLOBAL] *config_file_settings_dict* {'blacklist_enable': 'True', 'save_to_dir': 'f:\\012345'}
+    | *radio_selection_dict* user selection command line, bulk start radio instances later
+    | *radios_parent_dir* is the folder for all the radio dirs
+
+    | HTTP server can use Ajax, radio buttons and a dict to switch radio instances on/off
+
+    :methods: init_path: collect path variables in an instance and API
+    :params: frontend: switch options to avoid input() loops and forced parallel start of instances, unlike cmd
+    """
+    init_path()
     # show main menu and collect radios or update config file
-    ghetto_menu.menu_main()
+    menu.record() if frontend else menu.menu_main()  # ini file to internal dict or show terminal selection
 
-    entry.config_file_radio_url_dict = ghetto_menu.settings_ini_to_dict()
+    entry.config_file_radio_url_dict = menu.settings_ini_to_dict()
     for radio in entry.config_file_radio_url_dict.keys():
         entry.radio_name_list.append(radio)
-    entry.config_file_settings_dict = ghetto_menu.settings_ini_global()
-    entry.radio_selection_dict = ghetto_menu.record_read_radios()  # select radio menu input()
+    entry.config_file_settings_dict = menu.settings_ini_global()
+    # dict for html radio buttons or terminal menu input() loop
+    entry.radio_selection_dict = menu.radio_url_dict_create() if frontend else menu.record_read_radios()
 
-    remote_dir = ghettoApi.path.save_to_dir  # terminal menu option, not the default in [GLOBAL] from settings.ini
+    remote_dir = ghettoApi.path.save_to_dir  # settings.ini [GLOBAL] section path option for custom folder
     if remote_dir:
         entry.radios_parent_dir = Path(ghettoApi.path.save_to_dir)
     else:
         entry.radios_parent_dir = Path(ghettoApi.path.config_dir)
 
+    ghetto_blacklist.init(**entry.__dict__)  # checks start option on/off itself
+
+
+def main():
+    """"""
+    run_ghetto()
+
+    entry.runs_listen = False  # use frontend for listen
     run_radios(entry.radio_selection_dict)
-
     show_radios_urls_formatted()
-    ghetto_blacklist.init(**entry.__dict__)
-
     while 1:
         # names_list = [thread.name for thread in threading.enumerate()]
         # print(names_list)
-        time.sleep(10)
+        time.sleep(10)  # interval to show list; exit via signal_handler and keyboard
 
 
 if __name__ == "__main__":
