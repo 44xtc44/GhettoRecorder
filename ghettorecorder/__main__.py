@@ -1,4 +1,4 @@
-"""*Multithreading* server frontend,
+"""*Multithreading* HTTP server for frontend,
   else we stuck on one radio playing and we (the module) can not accept new requests.
 
 | Threads started before socket connect.
@@ -9,13 +9,11 @@ import os
 import time
 import json
 import socket
-import pathlib
 import threading
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import ghettorecorder.cmd as cmd
-import ghettorecorder.ghetto_menu as menu
 import ghettorecorder.ghetto_utils as utils
 import ghettorecorder.ghetto_procenv as procenv
 from ghettorecorder.cmd import entry  # instance [GLOBAL] [STATIONS] ini sections
@@ -79,37 +77,37 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404, '[GET] wrong endpoint /<endpoint_name>')
 
     def post_wait_shutdown(self):
-        """JS has timeout"""
+        """JS has ajax timeout."""
         self.data_string_get()
         dct = wait_shutdown()
         self.data_json_send(dct)
 
     def post_server_shutdown(self):
-        """"""
+        """Init server shutdown."""
         self.data_string_get()
         dct = server_shutdown()
         self.data_json_send(dct)
 
     def post_get_blacklist_file(self):
-        """"""
+        """blacklist to browser"""
         self.data_string_get()
         dct = read_blacklist_file()
         self.data_json_send(dct)
 
     def post_write_blacklist_file(self):
-        """"""
+        """Write changes made by browser to blacklist."""
         file_content = self.data_string_get()
         dct = write_blacklist_file(file_content.decode('utf-8'))
         self.data_json_send(dct)
 
     def post_get_config_file(self):
-        """"""
+        """settings.int to browser"""
         self.data_string_get()
         dct = read_config_file()
         self.data_json_send(dct)
 
     def post_write_config_file(self):
-        """"""
+        """Write changes to settings.ini."""
         file_content = self.data_string_get()
         dct = write_config_file(file_content.decode('utf-8'))
         self.data_json_send(dct)
@@ -137,16 +135,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.flush_headers()
-        self.wfile.write(bytes(json_string, "utf-8"))
+        try:
+            self.wfile.write(bytes(json_string, "utf-8"))
+        except OSError:  # browser dropped connection, supress broken pipe error
+            pass
 
     def data_string_get(self):
+        """Read the binary content of request."""
         length = int(self.headers.get_all('content-length')[0])
         data_string = self.rfile.read(length)
         self.send_response(200)
         return data_string
 
     def get_js(self, js):
+        """Browser reads index.html line by line. We send JavaScript content (link or src) to browser."""
         self.send_response(200)
         self.send_header('Content-type', 'text/javascript')
         self.end_headers()
@@ -155,6 +157,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(txt, "utf-8"))
 
     def get_style_css(self):
+        """Browser reads index.html. Send Style Sheet to browser."""
         self.send_response(200)
         self.send_header('Content-type', 'text/css')
         self.end_headers()
@@ -163,6 +166,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(txt, "utf-8"))
 
     def get_image(self, img):
+        """Image to browser."""
         self.send_response(200)
         self.send_header('Content-type', 'image/svg+xml')
         self.end_headers()
@@ -171,37 +175,50 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(txt, "utf-8"))
 
     def get_shutdown(self, radio):
-        """"""
+        """Radio instance shutdown and removal from dict."""
         self.send_response(200)
         self.end_headers()
         procenv.del_radio_instance(radio)
 
     def get_sound(self, radio=None):
         """The browser audio element (net client) auto connects /sound and is served here, no json return
-        We stuck here in a loop and THIS Handler Thread is not able to respond to other requests.
+        | We stuck here in a loop and THIS Handler Thread, module, is not able to respond to other requests.
+        | Absorb errors from JS, minus sign in front of radio is stop radio button id
+
+        | first char is minus if stop radio button, btn id is -radio name
+        | None and empty on whatever
+
+        :returns: Nothing, on error None;
         """
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')  # absolute essential for using gain and analyzer
-        self.send_header('Cache-Control', 'no-cache, no-store')  # absolute essential to not replay old saved stuff
-        self.send_header('Content-type', helper.content_type)
-        self.end_headers()
-        timeout = 14  # to finish graceful and absorb minor network outages, server shutdown is 15
+        if radio is None or radio == '' or radio[0:1] == '-':
+            return
+        self.get_send_header(helper.content_type)
+        timeout = 5  # absorb minor network outages
         start = time.perf_counter()
         while 1:
             if radio in ghettoApi.radio_inst_dict.keys():
-                if not ghettoApi.radio_inst_dict[radio].audio_out.empty():
+                audio_out_q = ghettoApi.radio_inst_dict[radio].audio_out
+                if not audio_out_q:
+                    break
+                if not audio_out_q.empty():
                     start = time.perf_counter()  # reset
-                    chunk = ghettoApi.radio_inst_dict[radio].audio_out.get()  # multiprocessor queue
-                    self.wfile.write(chunk)
+                    try:
+                        self.wfile.write(audio_out_q.get())
+                    except OSError:  # browser dropped connection, supress broken pipe error
+                        while not audio_out_q.empty():
+                            audio_out_q.get()
+                        audio_out_q.cancel_join_thread()  # py q feeder thread, q content is already removed
+                        break
+
             idle = round((time.perf_counter() - start))
-            if idle >= timeout:
-                print(f'  HTTP Handler Thread - release connection {radio}')  # thread is no more locked and can go down
+            if helper.server_shutdown or idle >= timeout:
+                print(f'\tGhetto HTTP Handler - release connection {radio}')  # thread is no more locked and can go down
                 break
             time.sleep(.1)
 
     @staticmethod
     def generate_index_html():
-        """"""
+        """Generate page line by line. We can change content if keyword string is found."""
         with open(os.path.join(dir_name, 'index.html'), 'r', encoding='utf-8') as f:
             while 1:
                 line = f.readline()
@@ -217,10 +234,7 @@ class Handler(BaseHTTPRequestHandler):
 
         :params: _o__radio_names____: write two radio buttons for a radio, stop (-) radio and run with to listen radio
         """
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
+        self.get_send_header('text/html')
         generator = self.generate_index_html()
         while 1:
             try:
@@ -245,19 +259,25 @@ class Handler(BaseHTTPRequestHandler):
                 break
             self.wfile.write(bytes(next_line, "utf-8"))
 
+    def get_send_header(self, content_type):
+        """Send header with Access control tag."""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')  # absolute essential for using gain and analyzer
+        self.send_header('Cache-Control', 'no-cache, no-store')  # absolute essential to not replay old saved stuff
+        self.send_header('Content-type', content_type)
+        self.end_headers()
+
 
 def wait_shutdown():
-    """"""
+    """Return a string for ajax to show we are still alive after shutdown command."""
     return {'wait_shutdown': 'alive'}
 
 
 def server_shutdown():
-    """"""
-    radio_lst = procenv.radio_instances_get()
-    for radio in radio_lst:
-        procenv.del_radio_instance(radio)
+    """Shutdown all radio instances command line style and tell server to shut down."""
+    cmd.shutdown()
     helper.server_shutdown = True
-    return {'server_shutdown': ' recorder_shutdown_init [20s]'}
+    return {'server_shutdown': ' recorder_shutdown_init'}
 
 
 def radio_title_get(radio):
@@ -286,9 +306,10 @@ def switch_local_buffer(radio):
     rv_dct = procenv.user_display_dict_get(radio)
     helper.content_type = rv_dct['content']
     rv_dct['recorder'] = radio_instance_lst
+    rv_dct['server_port'] = server_port
     if not is_alive:
-        print('----------- fail -------------')
-        rv_dct['content'] = 'no_response'
+        print(f'----------- {radio} fail -------------')
+        rv_dct['content'] = 'no_response'   # ajax knows an error
     return rv_dct
 
 
@@ -306,16 +327,20 @@ def start_radio_if_off(name, url):
 
 
 def convert_img(file_name):
-    """"""
+    """Base64 string converter.
+    Remnant of first attempt to generate the page only from a python list, no file system.
+    Still used.
+    """
     file_path = os.path.join(dir_name, 'static', 'images', file_name)
     base_64_str = utils.convert_ascii(file_path)
     return base_64_str
 
 
 def read_config_file():
-    """Ajax send content of config file settings.ini"""
+    """Ajax send content of config file settings.ini.
+    """
     file = entry.config_name
-    folder = entry.dir_name
+    folder = entry.config_dir  # changed from entry.dir_name
     conf_path = os.path.join(folder, file)
     with open(conf_path, 'r', encoding='utf-8') as reader:
         file_cont = reader.read()
@@ -323,10 +348,11 @@ def read_config_file():
 
 
 def write_config_file(file_content):
-    """
+    """entry.config_dir is either our package folder or
+    container folder.
     """
     file = entry.config_name
-    folder = entry.radios_parent_dir
+    folder = entry.config_dir
     conf_path = os.path.join(folder, file)
     with open(conf_path, 'w', encoding='utf-8') as writer:
         writer.write(file_content)
@@ -344,8 +370,7 @@ def read_blacklist_file():
 
 
 def write_blacklist_file(file_content):
-    """
-    """
+    """"""
     file = entry.blacklist_name
     folder = entry.radios_parent_dir
     file_path = os.path.join(folder, file)
@@ -355,7 +380,8 @@ def write_blacklist_file(file_content):
 
 
 # Create ONE socket.
-addr = ('', 1242)
+server_port = 1242
+addr = ('', server_port)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind(addr)
@@ -366,7 +392,7 @@ sock.listen(5)
 class Thread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.daemon = True
+        self.daemon = True  # self kill on prog exit
         self.start()
 
     def run(self):
@@ -381,35 +407,23 @@ class Thread(threading.Thread):
 
 
 def main():
-    """"""
-    cmd.init()  # config file to api
-    menu.record()  # ini to internal dict
-    entry.config_file_radio_url_dict = menu.settings_ini_to_dict()  # our instance to work with
-    for radio in entry.config_file_radio_url_dict.keys():
-        entry.radio_name_list.append(radio)
-    entry.config_file_settings_dict = menu.settings_ini_global()  # ini section [GLOBAL]
-    entry.radio_selection_dict = menu.radio_url_dict_create()
+    """
+    | Need more than one thread to not get blocked on serving one stream and answer requests.
+    | 1st thread accept request and serves endless stream as listen connection.
+    | 2nd thread accept request, browser drops connection -> 1st thread exit, 2nd thread start stream.
+    | 3rd thread is for an unknown blocking error. Proceed with normal operation.
 
-    remote_dir = ghettoApi.path.save_to_dir  # terminal menu option, not the default in [GLOBAL] from settings.ini
-    if remote_dir:
-        entry.radios_parent_dir = pathlib.Path(ghettoApi.path.save_to_dir)
-    else:
-        entry.radios_parent_dir = pathlib.Path(ghettoApi.path.config_dir)
-
-    cmd.show_radios_urls_formatted()
-    cmd.ghetto_blacklist.init(**entry.__dict__)
-
+    :methods: run_ghetto: same function call as command line, but skip input() loops
+    """
+    cmd.run_ghetto(frontend=True)
     [Thread() for _ in range(3)]  # all on same port, means if range(2) one can connect 2 browser tabs = 2 connections
     print("\n\tUser Interface at " + "http://localhost:1242/")
 
-    while 1:  # keep the show running
+    while 1:  # keep the show running until ajax sends shutdown command
         time.sleep(1)
         if helper.server_shutdown:
             ghettoApi.blacklist.stop_blacklist_writer = True
-            time.sleep(15)  # wait timeout listen handler on audio_out queue
             break   # Process finished with exit code 0, if all threads are down
-        # names_list = [thread.name for thread in threading.enumerate()]
-        # print(names_list)
 
 
 if __name__ == '__main__':
