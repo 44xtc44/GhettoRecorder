@@ -216,3 +216,14 @@ Feature attributes to switch on/off
        recorder_file_write        allow dumping current recorder file
        runs_listen                disable write to audio output queue; 3rd party can grab it. (listen blacklist)
        ========================== ==================================================================================
+
+Snapcraft package
+~~~~~~~~~~~~~~~~~~
+The installer creates an icon with the name "GhettoRecorder".
+You can use two command line options.::
+
+    ghettorecorder.url
+    ghettorecorder.cmd
+
+First is Client, Server connection.
+Second is command line menu.
