@@ -103,6 +103,7 @@ def menu_path():
 
 
 def menu_blacklist():
+    ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
     menu_options = {
         1: "blacklist on (don't write title if already downloaded)",
@@ -172,7 +173,7 @@ def record():
     if ghetto_ini.stations_config_get():
         ghetto_ini.stations_config_show()
 
-        print(f'\n.. config file in {ghettoApi.path.config_dir}')
+        print(f'\n..  config file settings.ini in {ghettoApi.path.config_dir}')
         ghetto_ini.global_config_get()
         ghetto_ini.global_config_to_api()
         ghetto_ini.global_config_show()  # if something is configured
@@ -322,7 +323,8 @@ def parent_record_path_change():
      Exception
         we crash, if config file is not in path, writing will fail
      """
-    print(f'\n\tWrite a new path to store files\n.. config file in {ghettoApi.path.config_dir}')
+    print(f'\n\tWrite a new path to store files\n.. config file settings.ini in  {ghettoApi.path.config_dir}')
+    ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
@@ -339,6 +341,7 @@ def parent_record_path_change():
                     ghetto_ini.global_record_path_write(custom_path)
                 except FileNotFoundError:
                     print("--> error, config file is not there or writeable (check path) - proceed")
+                ghetto_ini.global_config_get()
                 ghetto_ini.global_config_show()
                 input('Hit Enter to leave -->:')
                 break
@@ -357,7 +360,7 @@ def config_path_change():
         show new path, ghetto_ini.global_config_show()
      """
     print(f'\n\tType path to folder with settings.ini and blacklist.json (used for radio sub directories)'
-          f'\n.. config file in {ghettoApi.path.config_dir}')
+          f'\n.. config file settings.ini in  {ghettoApi.path.config_dir}')
     ghetto_ini.global_config_show()
     while True:
         line_input = input('Enter a new path, OS syntax (f:\\10 or /home ) -->:')
@@ -405,7 +408,7 @@ def blacklist():
 def blacklist_is_enabled():
     """ Write a new blacklist option to settings.ini file """
     print('\n\tWrite a new blacklist option to settings.ini file'
-          f'\n.. config file in {ghettoApi.path.config_dir}')
+          f'\n.. config file settings.ini in  {ghettoApi.path.config_dir}')
     menu_blacklist()
 
 
@@ -415,6 +418,7 @@ def blacklist_on():
           '\n\tExisting titles are not recorded again and again.'
           '\nfile name is "blacklist.json" in the same folder as "settings.ini"')
     ghetto_ini.global_blacklist_enable_write("True")
+    ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
     input('Hit Enter to leave -->:')
 
@@ -423,6 +427,7 @@ def blacklist_off():
     """ write disabled to config file """
     print('\n\tblacklist is OFF: settings.ini file')
     ghetto_ini.global_blacklist_enable_write("False")
+    ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
     input('Hit Enter to leave -->:')
 

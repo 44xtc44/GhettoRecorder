@@ -77,11 +77,13 @@ def stations_config_show():
     for index, name in enumerate(gini.radio_names_list):
         print(f'\t{index} \t>> %-20s <<' % name)
 
-    print(' \n Radio stations in your list. --> CHANGED: 42 to 12345')
-    print(' Please use "Ctrl + C" to stop the app.\n')
-    print('\tCopy/Paste a Radio from >> settings.ini <<, \n\tor type the leading number and press Enter\n')
-    print("\tType: 'ghetto_url' in a terminal to start the User Interface at " + "http://localhost:1242/")
-    print("\t If blacklist is ON, file: blacklist.json in the same folder as settings.ini")
+    with open(os.path.join(gini.dir_name, "ghetto_recorder.menu_info"), "r") as reader:
+        print(reader.read())
+    # print(' \n Radio stations in your list. --> CHANGED: 42 to 12345')
+    # print(' Please use "Ctrl + C" to stop the app.\n')
+    # print('\tCopy/Paste a Radio from >> settings.ini <<, \n\tor type the leading number and press Enter\n')
+    # print("\tType: 'ghetto_url' in a terminal to start the User Interface at " + "http://localhost:1242/")
+    # print("\t If blacklist is ON, file: blacklist.json in the same folder as settings.ini")
 
 
 def config_file_read():

@@ -1,0 +1,5 @@
+
+    + Grab all Radio stations in your list. --> Type: 12345
+    + Type the leading number or radio name and press Enter
+    + Type 'ghetto_url' in a terminal to start the User Interface at "http://localhost:1242/"
+    + Edit "settings.ini" [GLOBAL]  blacklist_enable = True  save_to_dir = /home/radio
