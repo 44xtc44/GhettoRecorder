@@ -58,7 +58,7 @@ html_theme = 'sphinx_rtd_theme'
 pygments_style = 'sphinx'
 
 html_static_path = ['_static']
-html_logo = "./_static/ghetto_logo.png"
+html_logo = "./_static/ghetto_url.svg"
 html_logo_only = True
 html_display_version = False
 html_css_files = [
