@@ -83,10 +83,12 @@ class Handler(BaseHTTPRequestHandler):
         self.data_json_send(dct)
 
     def post_server_shutdown(self):
-        """Init server shutdown."""
+        """Shutdown is fast now.
+        Must send answer before action.
+        """
         self.data_string_get()
-        dct = server_shutdown()
-        self.data_json_send(dct)
+        self.data_json_send({'server_shutdown': ' recorder_shutdown_init'})
+        server_shutdown()
 
     def post_get_blacklist_file(self):
         """blacklist to browser"""
@@ -277,7 +279,6 @@ def server_shutdown():
     """Shutdown all radio instances command line style and tell server to shut down."""
     cmd.shutdown()
     helper.server_shutdown = True
-    return {'server_shutdown': ' recorder_shutdown_init'}
 
 
 def radio_title_get(radio):
@@ -362,7 +363,7 @@ def write_config_file(file_content):
 def read_blacklist_file():
     """Ajax send content of config file settings.ini"""
     file = entry.blacklist_name
-    folder = entry.radios_parent_dir
+    folder = entry.config_dir  # changed from radios_parent_dir to config_dir, keep conf and blist together
     file_path = os.path.join(folder, file)
     with open(file_path, 'r', encoding='utf-8') as reader:
         file_cont = reader.read()
@@ -372,7 +373,7 @@ def read_blacklist_file():
 def write_blacklist_file(file_content):
     """"""
     file = entry.blacklist_name
-    folder = entry.radios_parent_dir
+    folder = entry.config_dir
     file_path = os.path.join(folder, file)
     with open(file_path, 'w', encoding='utf-8') as writer:
         writer.write(file_content)
@@ -417,7 +418,7 @@ def main():
     """
     cmd.run_ghetto(frontend=True)
     [Thread() for _ in range(3)]  # all on same port, means if range(2) one can connect 2 browser tabs = 2 connections
-    print("\n\tUser Interface at " + "http://localhost:1242/")
+    print(f"\n\tUser Interface at " + f"http://localhost:{server_port}/\n")
 
     while 1:  # keep the show running until ajax sends shutdown command
         time.sleep(1)
