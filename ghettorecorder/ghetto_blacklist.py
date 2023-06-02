@@ -37,7 +37,7 @@ def init(**kwargs):
     com_out delivers the result of eval, or None if exec is done, or error msg
     """
     helper.blacklist_name = kwargs['blacklist_name']
-    helper.blacklist_dir = kwargs['radios_parent_dir']
+    helper.blacklist_dir = kwargs['config_dir']  # changed from parent_dir to keep config and blacklist together
     helper.radio_name_list = kwargs['radio_name_list']
     helper.config_file_radio_url_dict = kwargs['config_file_radio_url_dict']
 
