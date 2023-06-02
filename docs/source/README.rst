@@ -1,26 +1,39 @@
 Documentation - GhettoRecorder
 ==============================
-| Grab hundreds of radio stations `simultaneously`.
-| Optional Browser Frontend runs on custom Python multithreading HTTP server.
+Grab hundreds of radio stations `simultaneously`.
 
-Info
-----
-| Queue communication. Multiprocessor ready.
-| GhettoRecorder class has connectors for external modules.
-| External modul *Blacklisting recorded titles* is already included.
-|
-| Type `$ ghetto_url` to use client server GUI.
-| Type `$ ghetto_cmd` to display the commandline menu.
-| Package folder can be copied elsewhere, run `__main__.py` or `cmd.py`.
-|
-| Multiple menu options are available:
-|   * Custom save path (written to config)
-|   * Blacklist, grab only once (written to config)
-|   * Store config file elsewhere and store grabbed content in 'Custom save path' (elsewhere)
-|   * Offline AACP repair, AAC repair files https://aacrepair.readthedocs.io/
+How to run installed package
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GhettoRecorder
+class module (example in ghetto_procenv).::
+
+    from ghettorecorder import GhettoRecorder
+
+    ghetto_01 = GhettoRecorder(radio, url)
+    ghetto_01.com_in = mp.Queue(maxsize=1)  # eval exec communication for multiprocessing
+    ghetto_01.audio_out = mp.Queue(maxsize=1)  # can also be normal queue.Queue()
+
+Commandline
+option (calls cmd.py).::
+
+    ghetto_cmd or
+    python3 -m ghettorecorder.cmd
+
+Client Server
+option (calls __main__.py).::
+
+    ghetto_url or
+    python3 -m ghettorecorder
+
+Overview
+~~~~~~~~~
+* Queue communication. Multiprocessor ready.
+* GhettoRecorder class has connector attributes for external modules.
+* External modul *Blacklisting recorded titles* is already included.
+* Optional Browser Frontend on Python multithreading HTTP server.
 
 Links
-^^^^^
+~~~~~
 * Snap: https://snapcraft.io/ghettorecorder
 * GitHub: https://github.com/44xtc44/GhettoRecorder
 * Issues to fix: https://github.com/44xtc44/GhettoRecorder/issues
@@ -29,15 +42,21 @@ Links
 Configuration File
 ------------------
 'Settings.ini' is the config file for GhettoRecorder.
-INI files consist of sections to divide different settings.
+INI files consist of sections to divide different settings.::
+
+    [STATIONS]
+    anime_jp = http://streamingv2.shoutcast.com/japanimradio-tokyo
+
+    [GLOBAL]
+    blacklist_enable = True
+    save_to_dir = f:\54321
 
 
-| [STATIONS] is used for radio connection information
-| anime_jp = ``http://streamingv2.shoutcast.com/japanimradio-tokyo``
+| [STATIONS]
+| custom radio name and radio connection information (can be pls or m3u playlist)
 
-| [GLOBAL] stores blacklist status and the parent save directory location
-| blacklist_enable = ``True``
-| save_to_dir = ``f:\31``
+| [GLOBAL]
+| stores blacklist status and the *custom* parent directory location
 
 Usage
 -----
@@ -174,3 +193,26 @@ remove::
    >$ pip3 uninstall ghettorecorder
 
 Location: ... /python310/site-packages
+
+GhettoRecorder module
+~~~~~~~~~~~~~~~~~~~~~~
+Communication with the GhettoRecorder instance
+
+       ========= ================= ======================================================
+       port      action            description
+       ========= ================= ======================================================
+       com_in    commands input    tuple (radio, [str 'eval' or 'exec'], str 'command')
+       com_out   status, err msg   (radio, [str 'eval' or 'exec'], response)
+       audio_out copy of html resp server can loop through to a browser
+       ========= ================= ======================================================
+
+Feature attributes to switch on/off
+
+       ========================== ==================================================================================
+       attribute                  description
+       ========================== ==================================================================================
+       runs_meta                  call metadata periodically, create path for rec out; False: recorder is the file
+       runs_record                disable writing to recorder file at all
+       recorder_file_write        allow dumping current recorder file
+       runs_listen                disable write to audio output queue; 3rd party can grab it. (listen blacklist)
+       ========================== ==================================================================================
