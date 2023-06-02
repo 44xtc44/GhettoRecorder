@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=3.0.0
+Type=Application
+Terminal=true
+Exec=ghettorecorder.url
+Icon=${SNAP}/meta/gui/ghetto_url_05.svg
+Name=GhettoRecorder
+Comment=GUI. Record Radio stations.
+Categories=Audio;Utility;AudioVideo;

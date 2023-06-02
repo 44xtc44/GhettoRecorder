@@ -1,0 +1,58 @@
+---
+name: ghettorecorder
+version: '3.0.0'
+summary: Radio Recorder, can archive multiple streams at once.
+description: |
+  Python3 App. Can connect to more than one site. 
+  You get a folder in your Home. /home/{user}/GhettoRecorder.
+  Use Queues to control and receive actual informantion of radio instance.
+
+icon: snap/gui/ghetto_url_05.svg  # snapcraft store
+
+grade: stable          # devel stable
+confinement: strict    # 'classic', 'devmode', 'strict'
+base: core20
+compression: lzo
+
+# Pyton multiprocessing (mp), e.g. Queues run into app.armor permission errors,
+# To reveal mp errors:
+# 1. $ sudo snappy-debug
+# 2. $ ghettorecorder (or snap with Python multiprocessing import)
+# Log: apparmor="DENIED" operation="mknod" profile="snap.ghettorecorder.ghettorecorder"
+#  name="/dev/shm/gIjemV" pid=113518 comm="python3" requested_mask="c" denied_mask="c" fsuid=1000 ouid=1000
+#  File: /dev/shm/gIjemV (write)
+#
+# PRELOAD from snapcraft helps to circumvent multiprocessor access denied problems
+
+apps:
+  url:  # 1. install snap, 2. $ ghettorecorder.url
+    command: usr/bin/snapcraft-preload $SNAP/bin/ghetto_url  # core18 bin/snapcraft-preload, core20 usr/bin/snapcraft-preload
+    plugs: [home, network, network-bind, removable-media]
+  cmd:
+    command: usr/bin/snapcraft-preload $SNAP/bin/ghetto_cmd  # core18 bin/snapcraft-preload, core20 usr/bin/snapcraft-preload
+    plugs: [home, network, network-bind, removable-media]
+
+parts:
+  ghettorecorder:
+    plugin: python
+    source: https://github.com/44xtc44/GhettoRecorder.git
+    python-packages:
+    - git+https://github.com/44xtc44/GhettoRecorder.git
+    override-build: |  # snapcraftctl build needed to pull python pkg, else only one command; LD_PRELOAD fails if no symlink
+      snapcraftctl build
+      ln -sf ../usr/lib/libsnapcraft-preload.so $SNAPCRAFT_PART_INSTALL/lib/libsnapcraft-preload.so
+  snapcraft-preload:
+    source: https://github.com/sergiusens/snapcraft-preload.git  # PRELOAD thingy, search 'Snapcraft-preload and /dev/shm access'
+    plugin: cmake
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr -DLIBPATH=/lib  # /usr is for pre-load, core20 puts all stuff in /usr/local
+    stage-packages:
+      - to amd64:
+        - lib32stdc++6
+    build-packages:
+      - to arm64:
+        - g++-multilib-arm-linux-gnueabihf
+        - gcc-multilib-arm-linux-gnueabihf
+      - else:
+        - gcc-multilib
+        - g++-multilib
