@@ -1,14 +1,6 @@
 ghettorecorder package
 ======================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   ghettorecorder.test
-
 Submodules
 ----------
 
@@ -80,30 +72,6 @@ ghettorecorder.ghetto\_header\_mp3 module
 -----------------------------------------
 
 .. automodule:: ghettorecorder.ghetto_header_mp3
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ghettorecorder.ghetto\_http\_helper module
-------------------------------------------
-
-.. automodule:: ghettorecorder.ghetto_http_helper
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ghettorecorder.ghetto\_http\_master module
-------------------------------------------
-
-.. automodule:: ghettorecorder.ghetto_http_master
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ghettorecorder.ghetto\_http\_route module
------------------------------------------
-
-.. automodule:: ghettorecorder.ghetto_http_route
    :members:
    :undoc-members:
    :show-inheritance:
