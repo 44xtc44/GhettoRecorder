@@ -79,7 +79,7 @@ class GhettoRecorder(threading.Thread):
 
         # com ports, creator of instance attach queues
         self.com_in = None  # rv_tup = (radio, [str 'eval' or 'exec'], str 'command')
-        self.com_out = None  # result
+        self.com_out = None  # result tuple
         self.audio_out = None  # grab response chunks; web server can offer them JS audio elem on endpoint
         self.info_dump_dct = {}  # eval reads dict and caller puts useful info in Ghetto API
 
@@ -338,9 +338,11 @@ class GhettoRecorder(threading.Thread):
                 self.meta_data_inst.meta_get(self.radio_url, self.radio_name,
                                              self.radio_dir,
                                              self.suffix, self.bit_rate, self.user_agent)
-                self.info_dump_dct = self.meta_data_inst.header_info_dict
+
                 self.new_title = self.meta_data_inst.title
                 self.new_dst = self.meta_data_inst.title_path
+                self.info_dump_dct = self.meta_data_inst.header_info_dict
+                self.info_dump_dct_update()
 
                 if self.new_title:
                     self.metadata_title_change()
@@ -350,6 +352,14 @@ class GhettoRecorder(threading.Thread):
                 if not self.runs_meta or self.shutdown:
                     utils.shutdown_msg(self.radio_name, 'Meta Thread')
                     return
+
+    def info_dump_dct_update(self):
+        """Add non header info."""
+        self.info_dump_dct.update({'radio': self.radio_name,
+                                   'new_title': self.new_title,
+                                   'runs_meta': self.runs_meta,
+                                   'runs_record': self.runs_record,
+                                   'runs_listen': self.runs_listen})
 
     def metadata_title_change(self):
         """Print title and update ``new_title`` to terminal screen.

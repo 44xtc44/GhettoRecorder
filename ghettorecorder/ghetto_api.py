@@ -39,6 +39,7 @@ class GhettoApi:
         self.audio = self.Audio()
         self.blacklist = self.BlackList()
         self.err = self.Err()
+        self.multi_proc = self.MultiProc()
         self.info = self.Info()
         self.path = self.Path()
         self.feature = self.Feature()
@@ -66,10 +67,41 @@ class GhettoApi:
             self.error_dict = {}
             self.radio_err_count_dict = {}
 
-    class Info:
+    class MultiProc:
+        """eisenmp manager fills process_count nums.
+        Each process gets a num, start zero.
+        Process (eisenmp) loader knows its num and can read, write queues with the same num.
+
+        Caller uses num of queue:
+        Inform correct loader to create GhettoRadio instance in the new process.
+        Load balance the instances over the processes.::
+            
+            com_in_3, com_out_3, audio_out_3 = mp.Queue(maxsize=1), mp.Queue(maxsize=1), mp.Queue(maxsize=1)
+
+            # Find a queue num (obj ref.) for a radio; Can loop over dict and shut down all radios in a process.
+            self.com_in['radio'], self.com_out['radio'], self.audio_out['radio'] = com_in_3, com_out_3, audio_out_3
+        """
         def __init__(self):
-            self.header_dict = {}
+            self.process_count = 0
+            self.com_in = {}
+            self.com_out = {}
+            self.audio_out = {}
+
+    class Info:
+        """Dicts are incompatible with GhettoRecorder < v3.
+        Previous version used ghetto_measure_dict[name + ',suffix'] style in one dict.
+        """
+        def __init__(self):
+            self.bit_rate = {}
+            self.request_time = {}
+            self.content_type = {}
+            self.icy_name = {}
+            self.icy_genre = {}
+            self.icy_url = {}
             self.current_title_dict = {}
+            self.runs_meta = {}  # update from instance {'bar': True}
+            self.runs_record = {}
+            self.runs_listen = {}
 
     class Path:
         def __init__(self):
