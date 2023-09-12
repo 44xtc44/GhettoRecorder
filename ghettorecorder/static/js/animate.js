@@ -1,12 +1,13 @@
-var counter = 0;
-var animationIndex = 0;
-var animationRuns = 0;
+class GlobAni{
+  constructor() {
+    this.animationRuns = 0;
+  }
+}
 
 function cancelAnimation(killerVar) {
     /**
      * Killer shall be an internal id of requestAnim......
      * Must be done, else we have overlay of several animations on canvas.
-     * The brain dead implementation is that the instance var is global elsewhere. No foo.killId required!
      */
       try {
         window.cancelAnimationFrame(killerVar);
@@ -15,16 +16,16 @@ function cancelAnimation(killerVar) {
 ;
 function callAnimation() {
     /**
-     * Switch for two functions.
+     * Switch for two analyzer functions.
      */
-    if (animationRuns == 0) {
+    if (globAni.animationRuns == 0) {
       cancelAnimation(drawKiller);
       animatedBars();
-      animationRuns = 1;
+      globAni.animationRuns = 1;
     } else {
       cancelAnimation(animatedBarsKiller);
       draw();
-      animationRuns = 0;
+      globAni.animationRuns = 0;
     }
 }
 ;
@@ -83,8 +84,7 @@ function animatedBars() {
     canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
     x += barWidth;
 }
-
-  counter++;
   animatedBarsKiller = window.requestAnimationFrame(animatedBars);
 }
 ;
+var globAni = new GlobAni();
