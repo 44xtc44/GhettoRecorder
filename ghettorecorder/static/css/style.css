@@ -86,6 +86,10 @@ h1 {
   height: 7em;
   box-shadow: 0 0 4px rgba(35, 173, 278, 1);  /* rgba(35, 173, 278, 1) */
 }
+/* background img wrap */
+#svgSkyRight_wrapper {
+    overflow: hidden;
+}
 #svgSkRight {
   position: relative;
   top: 10em;
@@ -115,10 +119,6 @@ h1 {
   cursor: pointer;
   top: -3.75em;
   left: 2em;
-}
-/* background img wrap */
-#svgSkyRight_wrapper {
-    overflow: hidden;
 }
 /* bigger icons to click on */
 .spanBigBtn {
@@ -182,4 +182,17 @@ h1 {
   font-size: 100%;
   cursor: pointer;
   border-radius: var(--border-radius);
+}
+/*                  ----- moving SVG -----                    */
+#divMovingSVG {
+  position: relative;
+}
+#divAirOne {
+  position: absolute;
+  width: 100%;
+  max-width: 1em;
+  max-height: 1em;
+  top: -20em;
+  left: 60em;
+  transform: scale(3, 3);
 }

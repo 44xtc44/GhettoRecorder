@@ -40,6 +40,7 @@ class HiddenOnOff{
     /**
      * Switch the visibility of an element on/off. Javascript has no Py getattr, setattr. We save elem names as key.
      * Overkill for one or two divs, but becomes handy for reuse.
+     * Reading the display status leads often to switch pb. e.g. double click to hide. We save status in vars.
      * Use:
      *  init at the bottom of this script
      *  hiddenOnOff = new HiddenOnOff()
@@ -95,6 +96,7 @@ function audioEnable () {
      */
     setAudioContextVisual();
     draw();  // animate.js
+    initAirOne(); // svgAni.js
 }
 ;
 function setAudioContextVisual() {
@@ -332,5 +334,5 @@ function ajax_wait_shutdown() {
 ;
 
 /* init class */
-hiddenOnOff = new HiddenOnOff()
-glob = new Glob()
+var hiddenOnOff = new HiddenOnOff()
+var glob = new Glob()
