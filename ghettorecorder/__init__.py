@@ -31,11 +31,10 @@ class GhettoRecorder(threading.Thread):
    * Use different configurations for each radio. Use a dict, json file or database (like ``EisenRadio`` FrontEnd).
    * own stream reader modules for mp3 and aac file header included, to repair recorded files on the fly
 
-    __init__(name, url, com_q=None)
+    __init__(name, url)
 
     :params: name: custom alias for the inet radio server
     :params: url: url, or playlist deployment server; see 'resolve_playlist_url()'
-    :params: com_q: requires a named tuple with in out qs, com_q.com_in.put() or com_q.com_out.put()
     """
 
     def __init__(self, name, url):
@@ -219,7 +218,7 @@ class GhettoRecorder(threading.Thread):
                 break
             if not self.com_in.empty():
                 eval_tup = self.com_in.get()
-                name, expr, command = eval_tup[0], eval_tup[1], eval_tup[2]
+                expr, command = eval_tup[1], eval_tup[2]
 
                 if expr == 'exec':
                     try:
