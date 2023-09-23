@@ -16,11 +16,9 @@ import time
 import urllib
 import urllib.error
 import certifi
-from collections import namedtuple
 from urllib.request import urlopen, Request
 
 import ghettorecorder.ghetto_utils as ghetto_utils
-# from ghettorecorder.ghetto_api import ghettoApi
 
 os.environ['SSL_CERT_FILE'] = certifi.where()
 context_ssl = ssl.create_default_context(cafile=certifi.where())
@@ -44,17 +42,15 @@ class MetaData:
         :params: str_radio: radio
         :params: request_time: time of request duration
         """
-        HeaderInfo = namedtuple('HeaderInfo', "request_time content_type icy_br icy_name icy_genre icy_url")
-        header = HeaderInfo(request_time,
-                            validate_header_data(request.headers['content-type']),
-                            bit_rate,
-                            validate_header_data(request.headers['icy-name']),
-                            validate_header_data(request.headers['icy-genre']),
-                            validate_header_data(request.headers['icy-url']),
-                            )
-        # ghettoApi.audio.audio_stream_content_type_dict[str_radio] = header.content_type
-        # ghettoApi.info.header_dict[str_radio] = header
-        return header
+        self.header_info_dict = {
+            'radio': str_radio,
+            'bit_rate': bit_rate,
+            'request_time': request_time,
+            'content-type': validate_header_data(request.headers['content-type']),
+            'icy-name': validate_header_data(request.headers['icy-name']),
+            'icy-genre': validate_header_data(request.headers['icy-genre']),
+            'icy-url': validate_header_data(request.headers['icy-url']),
+        }
 
     def meta_get(self, url, str_radio, radio_dir, stream_suffix, bit_rate, user_agent):
         """Receive and process metadata. Prone to UrlError Timeout.
@@ -75,14 +71,14 @@ class MetaData:
         if not response:
             return
 
-        header_info_dict = self.metadata_header_info(response, str_radio, request_time, bit_rate)
+        self.metadata_header_info(response, str_radio, request_time, bit_rate)
         try:
             icy_info = metadata_icy_info(response, str_radio)
             self.title_path, self.title = title_path_build(icy_info, url, radio_dir, stream_suffix)
         except (AttributeError,):  #
             return AttributeError  # minor
         except Exception as e:
-            print(f' ---> meta_get() {str_radio}, exception info: {type(e).__name__} , {url} {header_info_dict}')
+            print(f' ---> meta_get() {str_radio}, exception info: {type(e).__name__} , {url} {self.header_info_dict}')
 
 
 def validate_header_data(value):

@@ -67,9 +67,20 @@ class GhettoApi:
             self.radio_err_count_dict = {}
 
     class Info:
+        """Dicts are incompatible with GhettoRecorder < v3.
+        Previous version used ghetto_measure_dict[name + ',suffix'] style in one dict.
+        """
         def __init__(self):
-            self.header_dict = {}
+            self.bit_rate = {}
+            self.request_time = {}
+            self.content_type = {}
+            self.icy_name = {}
+            self.icy_genre = {}
+            self.icy_url = {}
             self.current_title_dict = {}
+            self.runs_meta = {}  # update from instance {'bar': True}
+            self.runs_record = {}
+            self.runs_listen = {}
 
     class Path:
         def __init__(self):

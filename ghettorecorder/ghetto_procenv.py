@@ -50,7 +50,7 @@ def del_radio_instance(radio):
         del ghettoApi.radio_inst_dict[radio]
 
     except Exception as e:
-        print(f'Exception: del_radio_instance ', radio, e)
+        print('Exception: del_radio_instance ', radio, e)
     print(f'[removed] {radio} from dictionary ')
 
 
@@ -88,9 +88,9 @@ def radio_instance_create(radio, url, **kwargs):
     dct[radio].runs_meta = meta
     dct[radio].runs_record = record
     dct[radio].runs_listen = listen
-    dct[radio].com_in = mp.Queue(maxsize=1)
-    dct[radio].com_out = mp.Queue(maxsize=1)
-    dct[radio].audio_out = mp.Queue(maxsize=1)
+    dct[radio].com_in = mp.Queue(maxsize=1)  # radio must share one com_in q with others, if mp per CPU is up
+    dct[radio].com_out = mp.Queue(maxsize=1)  # com_out dito
+    dct[radio].audio_out = mp.Queue(maxsize=1)  # audio_out dito
     dct[radio].start()
     return True
 

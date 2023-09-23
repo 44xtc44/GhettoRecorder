@@ -101,7 +101,7 @@ def config_file_read():
             config.read_file(open(config_file_path))
             return config
         except OSError:
-            print(f'OSError in config_parse_get not avail.')
+            print('OSError in config_parse_get not avail.')
             return False
 
 
