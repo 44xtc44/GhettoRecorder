@@ -419,7 +419,7 @@ def main():
     """
     cmd.run_ghetto(frontend=True)
     [Thread() for _ in range(3)]  # all on same port, means if range(2) one can connect 2 browser tabs = 2 connections
-    print(f"\n\tUser Interface at " + f"http://localhost:{server_port}/\n")
+    print("\n\tUser Interface at " + f"http://localhost:{server_port}/\n")
 
     while 1:  # keep the show running until ajax sends shutdown command
         time.sleep(1)

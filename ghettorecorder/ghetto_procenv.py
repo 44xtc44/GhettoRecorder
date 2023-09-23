@@ -50,7 +50,7 @@ def del_radio_instance(radio):
         del ghettoApi.radio_inst_dict[radio]
 
     except Exception as e:
-        print(f'Exception: del_radio_instance ', radio, e)
+        print('Exception: del_radio_instance ', radio, e)
     print(f'[removed] {radio} from dictionary ')
 
 
