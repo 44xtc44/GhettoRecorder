@@ -92,4 +92,3 @@ class TestDBWorker(unittest.TestCase):
     def tearDown(self) -> None:
         for proc in self.proc_list:
             proc.kill()
-
