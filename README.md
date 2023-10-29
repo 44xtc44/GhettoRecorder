@@ -17,12 +17,12 @@ A documented [example](https://github.com/44xtc44/eisenmp_examples) runs on my [
   <tbody>
     <tr>
       <td>
-        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/ghetto_cmd.PNG" alt="menu options on command line" style="width:46px"/> 
+        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_cmd.PNG" alt="menu options on command line" style="width:46px"/> 
       </td>
     </tr>
     <tr>
       <td>
-        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/ghetto_py_http.PNG" alt="custom python multithreading http server" style="width:46px"/>
+        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_py_http.PNG" alt="custom python multithreading http server" style="width:46px"/>
       </td>
     </tr>
   </tbody>
@@ -48,7 +48,7 @@ A documented [example](https://github.com/44xtc44/eisenmp_examples) runs on my [
 
     $ sudo snap install ghettorecorder
 
-<img src="./ghetto_url_no_rotation.png" alt="ghetto desktop icon" style="width:46px"/> 
+<img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_url_no_rotation.png" alt="ghetto desktop icon" style="width:46px"/> 
 
 
 Desktop icon for the click addicted.

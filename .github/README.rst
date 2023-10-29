@@ -14,14 +14,14 @@ A documented `example <https://github.com/44xtc44/eisenmp_examples>`_ runs on my
 * Threaded HTTP server `__main__.py <https://github.com/44xtc44/GhettoRecorder/blob/dev/ghettorecorder/__main__.py>`_ is switching the Backend and feeds the Frontend to run a show
 * AAC files cut from stream are repaired on the fly with my `aacRepair <https://github.com/44xtc44/aacRepair>`_
 
-.. image:: /../ghetto_cmd.PNG
+.. image:: ../ghetto_cmd.PNG
             :alt: menu options on command line
             :class: with-border
             :width: 609
 
 -
 
-.. image:: /../ghetto_py_http.PNG
+.. image:: ../ghetto_py_http.PNG
             :alt: custom python multithreading http server
             :class: with-border
             :width: 609
