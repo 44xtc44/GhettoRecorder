@@ -1,40 +1,84 @@
-Documentation - GhettoRecorder
-==============================
-![alt logo of ghettorecorder](https://github.com/44xtc44/ghettorecorder/raw/dev/docs/source/_static/ghetto_url.svg)
-Grab hundreds of radio stations `simultaneously`.
+GhettoRecorder - GitHub readme.rst
+===================================
+Fun app - Grab hundreds of radio stations simultaneously.
 
-How to run installed package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-GhettoRecorder
-class module (example in ghetto_procenv).::
-
-    from ghettorecorder import GhettoRecorder
-
-    ghetto_01 = GhettoRecorder(radio, url)
-    ghetto_01.com_in = mp.Queue(maxsize=1)  # eval exec communication for multiprocessing
-    ghetto_01.audio_out = mp.Queue(maxsize=1)  # can also be normal queue.Queue()
-
-Commandline
-option (calls cmd.py).::
-
-    ghetto_cmd or
-    python3 -m ghettorecorder.cmd
-
-Client Server
-option (calls __main__.py).::
-
-    ghetto_url or
-    python3 -m ghettorecorder
+Test app - Python owns a working SSL pem file? See <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]
 
 Overview
 ~~~~~~~~~
-* Queue communication. Multiprocessor ready.
-* GhettoRecorder class has connector attributes for external modules.
-* External modul *Blacklisting recorded titles* is already included.
-* Optional Browser Frontend on Python multithreading HTTP server.
+This repository shows the source code of a multiprocessor capable recorder app.
+A documented `example <https://github.com/44xtc44/eisenmp_examples>`_ runs on my `eisenmp framework <https://github.com/44xtc44/eisenmp>`_.
+
+* Class implementation `__init__.py <https://github.com/44xtc44/GhettoRecorder/blob/dev/ghettorecorder/__init__.py>`_ allows external modules (e.g. blacklist) to manipulate instances
+* Blacklist module `ghetto_blacklist.py <https://github.com/44xtc44/GhettoRecorder/blob/dev/ghettorecorder/ghetto_blacklist.py>`_ JSON records can be merged with my `EisenRadio <https://github.com/44xtc44/EisenRadio>`_ DB dump
+* Threaded HTTP server `__main__.py <https://github.com/44xtc44/GhettoRecorder/blob/dev/ghettorecorder/__main__.py>`_ is switching the Backend and feeds the Frontend to run a show
+* AAC files cut from stream are repaired on the fly with my `aacRepair <https://github.com/44xtc44/aacRepair>`_
+
+.. image:: ./ghetto_cmd.PNG
+            :alt: menu options on command line
+            :class: with-border
+            :width: 609
+
+-
+
+.. image:: ./ghetto_py_http.PNG
+            :alt: custom python multithreading http server
+            :class: with-border
+            :width: 609
+
+Import
+~~~~~~~~
+
+::
+
+    from ghettorecorder import GhettoRecorder
+
+    ghetto_raid = GhettoRecorder(radio, url)  # use different URLs to test SSL
+    ghetto_raid.com_in = mp.Queue(maxsize=1)  # eval exec communication
+    ghetto_raid.com_out = mp.Queue(maxsize=1)  # response; exec ok is "None"
+    ghetto_raid.audio_out = mp.Queue(maxsize=1)  # current HTTP response buffer
+    ghetto_raid.start()  # wants a loop in main() to keep the show alive
+
+`Snapcraft package <https://snapcraft.io/ghettorecorder>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+   sudo snap install ghettorecorder
+
+.. image:: ./ghetto_url_no_rotation.png
+            :alt: ghetto desktop icon
+            :width: 46
+
+Desktop icon for the click addicted.
+
+::
+
+   ghettorecorder.url  # Ghetto HTTP threaded server
+   ghettorecorder.cmd  # command line with menu
+
+`Python package <https://pypi.org/project/GhettoRecorder/>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+   $ pip3 install ghettorecorder
+
+   $ pip3 show ghettorecorder  # prep removal
+   $ pip3 uninstall ghettorecorder  # del custom dirs of recorder in ... /python3.x/site-packages
+
+   # command line
+   $ ghetto_cmd  # Python executable 'beside' /python3.x/site-packages in /python3.x/Scripts
+   $ python3 -m ghettorecorder.cmd
+
+   # browser
+   $ ghetto_url or
+   $ python3 -m ghettorecorder
+
 
 Links
 ~~~~~
+* PYPI: https://pypi.org/project/GhettoRecorder
 * Snap: https://snapcraft.io/ghettorecorder
 * GitHub: https://github.com/44xtc44/GhettoRecorder
 * Issues to fix: https://github.com/44xtc44/GhettoRecorder/issues
@@ -53,11 +97,9 @@ INI files consist of sections to divide different settings.::
     save_to_dir = f:\54321
 
 
-| [STATIONS]
-| custom radio name and radio connection information (can be pls or m3u playlist)
+|    [STATIONS] custom radio name and radio connection information (can be pls or m3u playlist)
 
-| [GLOBAL]
-| stores blacklist status and the *custom* parent directory location
+|    [GLOBAL] blacklist status and the *custom* parent directory location
 
 Usage
 -----
@@ -168,63 +210,25 @@ aac file repair
 | Cut bytes count is shown at the end of the line.
 | Repair can fail if the file is corrupted not only at start or end.
 
-
-Pip Install
-^^^^^^^^^^^
-::
-
-   """ Linux """
-   $ pip3 install ghettorecorder
-
-   """ Windows """
-   > pip install ghettorecorder
-
-
-Uninstall
-^^^^^^^^^
-
-Python user
-
- * find the module location
- * uninstall and then remove remnants
-
-remove::
-
-   >$ pip3 show ghettorecorder
-   >$ pip3 uninstall ghettorecorder
-
-Location: ... /python310/site-packages
-
-GhettoRecorder module
+GhettoRecorder Class
 ~~~~~~~~~~~~~~~~~~~~~~
-Communication with the GhettoRecorder instance
+Communicate with the instance
 
-       ========= ================= ======================================================
+       ========= ================= =========================================================
        port      action            description
-       ========= ================= ======================================================
+       ========= ================= =========================================================
        com_in    commands input    tuple (radio, [str 'eval' or 'exec'], str 'command')
        com_out   status, err msg   (radio, [str 'eval' or 'exec'], response)
-       audio_out copy of html resp server can loop through to a browser
-       ========= ================= ======================================================
+       audio_out copy of html resp a local HTTP server can loop through to a browser or app
+       ========= ================= =========================================================
 
 Feature attributes to switch on/off
 
        ========================== ==================================================================================
        attribute                  description
        ========================== ==================================================================================
-       runs_meta                  call metadata periodically, create path for rec out; False: recorder is the file
-       runs_record                disable writing to recorder file at all
-       recorder_file_write        allow dumping current recorder file
-       runs_listen                disable write to audio output queue; 3rd party can grab it. (listen blacklist)
+       runs_meta                  periodic metadata call to create path for named rec out; False: unnamed rec file
+       runs_record                disables writing to recorder file at all
+       recorder_file_write        allow dump 'current' recorder file; need 'runs_meta'; makes rec blacklist possible
+       runs_listen                disable write to audio_out queue; 3rd party can write into queue; listen blacklist
        ========================== ==================================================================================
-
-Snapcraft package
-~~~~~~~~~~~~~~~~~~
-The installer creates an icon with the name "GhettoRecorder".
-You can use two command line options.::
-
-    ghettorecorder.url
-    ghettorecorder.cmd
-
-First is Client, Server connection.
-Second is command line menu.

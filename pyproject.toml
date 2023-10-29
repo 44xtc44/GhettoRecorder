@@ -9,7 +9,7 @@ description = "multiprocessor capable internet radio grabber"
 authors = [{name = "René Horn", email = "rene_horn@gmx.net" }]
 keywords = ['internet radio grabber']
 license = {text = "MIT"}
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.7"
 
 
