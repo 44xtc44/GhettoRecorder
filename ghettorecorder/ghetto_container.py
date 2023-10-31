@@ -1,13 +1,12 @@
-""" module for ghettorecorder Python package to container deployment (read only, or restore on shutdown fs)
+""" Module for ghettorecorder Python package to container deployment.
 
-Target
-   docker container
-   snap container, snapcraft setup for linux OS
+All container need different folders to store 'settings.ini'.
+Some areas are write protected, restored to default after app exit, or the user can not access them.
 
-Functions
-   container_setup  - decide to set up a container env
-   container_config_dir - get path for new folder creation
-   create_config_env    - overwrite base dir for ghetto, copy config file to that dir
+Methods
+    container_setup decide to set up a container env
+    container_config_dir get path for new folder creation
+    create_config_env overwrite base dir for ghetto, copy config file to that dir
 """
 import os
 import shutil
@@ -15,7 +14,7 @@ import getpass
 from ghettorecorder.ghetto_api import ghettoApi
 
 
-def container_setup():
+def container_setup() -> str:
     """ return False if no package specific env variable is set
 
      Info
@@ -23,20 +22,29 @@ def container_setup():
         change and create the default (parent) record path
         copy settings.ini to that path
 
-    :returns: True if container
+    :returns: string of folder where settings.ini and blacklist.json resides
     """
-    folder = False
+    folder = ''
     is_snap = 'SNAP' in os.environ
-    is_docker = 'DOCKER' in os.environ
+    is_docker = 'DOCKER' in os.environ  # must be set in Docker file
+    is_android = 'ANDROID_STORAGE' in os.environ
 
     if is_snap:
-        get_env_snap()
-        folder = container_config_dir('SNAP')
+        get_env_snap()  # track snap ver, release beta, edge ...
+        username = getpass.getuser()
+        print('Hello, ' + username)
+        folder = os.path.join('/home', username, 'GhettoRecorder')
 
     if is_docker:
-        get_env_docker()
-        folder = container_config_dir('DOCKER')
+        print('\n\tGhettoRecorder App in Docker Container\n')
+        folder = os.path.join('/tmp', 'GhettoRecorder')
 
+    if is_android:
+        print('\n\tGhettoRecorder Android App\n')
+        folder = os.path.join('/storage', 'emulated', '0', 'Music', 'GhettoRecorder')
+
+    if folder:
+        create_config_env(folder)
     return folder
 
 
@@ -52,28 +60,6 @@ def get_env_snap():
     print('SNAP_ARCH: ' + os.environ["SNAP_ARCH"])
     print('SNAP_VERSION: ' + os.environ["SNAP_VERSION"])
     print('SNAP: ' + os.environ["SNAP"])
-
-
-def get_env_docker():
-    print('\n\tGhettoRecorder App in Docker Container\n')
-
-
-def container_config_dir(container):
-    """ assemble the path to new config dir (settings.ini and blacklist)
-    | 'get user' - create dir under home folder for snap
-    | save path for caller to read later
-
-    :params: container: either snap or docker
-    """
-    if container == 'SNAP':                                   # SNAP
-        username = getpass.getuser()
-        print('Hello, ' + username)
-        ghetto_folder = os.path.join('/home', username, 'GhettoRecorder')
-    else:
-        ghetto_folder = os.path.join('/tmp', 'GhettoRecorder')  # DOCKER
-
-    create_config_env(ghetto_folder)
-    return ghetto_folder
 
 
 def create_config_env(ghetto_folder):
@@ -101,11 +87,7 @@ def make_config_folder(ghetto_folder):
 
 
 def container_copy_settings(source_ini, dst_ini):
-    """ copy settings.ini from package container to
-     snap user home/GhettoRecorder or
-     docker tmp/GhettoRecorder
-     never overwrite a user customized settings.ini
-     """
+    """ Copy settings.ini and never overwrite a user customized settings.ini. """
     try:
         if not os.path.exists(dst_ini):
             shutil.copyfile(source_ini, dst_ini)
