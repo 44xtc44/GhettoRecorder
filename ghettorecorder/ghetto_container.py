@@ -15,12 +15,13 @@ from ghettorecorder.ghetto_api import ghettoApi
 
 
 def container_setup() -> str:
-    """ return False if no package specific env variable is set
+    """ return False, empty string if no package specific env variable is set
 
-     Info
-        variable must be set in package config file Dockerfile or snapcraft.yaml
-        change and create the default (parent) record path
-        copy settings.ini to that path
+    Copy settings.ini to the container writable user folder.
+    Android Studio copy settings.ini folder from /assets to user folder.
+    ./assets/GhettoRecorder /storage/emulated/0/Music/GhettoRecorder.
+
+     *DOCKER* Variable must be set in package config file Dockerfile or snapcraft.yaml
 
     :returns: string of folder where settings.ini and blacklist.json resides
     """
@@ -93,3 +94,5 @@ def container_copy_settings(source_ini, dst_ini):
             shutil.copyfile(source_ini, dst_ini)
     except FileExistsError:
         pass
+    except Exception as e:
+        print(e)
