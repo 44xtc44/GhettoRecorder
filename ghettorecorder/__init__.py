@@ -450,13 +450,14 @@ class GhettoRecorder(threading.Thread):
 
         :params: e: error object
         """
-        weak_error_list = ['BrokenPipeError', 'OSError', 'ValueError', 'FileExistsError']
+        weak_error_list = ['BrokenPipeError', 'OSError', 'ValueError', 'FileExistsError', 'AttributeError']
         strong_error_list = ['ConnectionResetError', 'TypeError']
 
         if type(e).__name__ in weak_error_list:
-            pass
+            msg = f"Weak error, {self.radio_name} {meth_name} {type(e).__name__} - keep connection."
+            print(msg)
         elif type(e).__name__ in strong_error_list:
-            msg = f"Error, {self.radio_name} {meth_name} {type(e).__name__} - cancel radio connection."
+            msg = f"Strong error, {self.radio_name} {meth_name} {type(e).__name__} - cancel radio connection."
             print(msg)
             self.cancel()
         else:
