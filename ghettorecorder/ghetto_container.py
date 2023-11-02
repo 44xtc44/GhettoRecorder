@@ -55,9 +55,10 @@ def container_setup() -> str:
 
     if is_android:
         print('\n\tGhettoRecorder Android App\n')
-        # we are not allowed to write files from setup apk to user folders
-        # folder = os.path.join('/storage', 'emulated', '089', 'Music')
-        parent_record_path_change("/storage/emulated/0/Music/")  # same as menu 'Change parent record path'
+        # we are not allowed to write files (.ini) from setup apk to user folders; redirect rec via ini
+        is_path = parent_record_path_get()
+        if not is_path:
+            parent_record_path_change("/storage/emulated/0/Music/")  # same as menu 'Change parent record path'
 
     return folder
 
@@ -116,19 +117,25 @@ def container_copy_settings(**kwargs):
         print(e)
 
 
-def parent_record_path_change(folder):
-    """ populate variables in GIni
-     """
+def parent_record_path_get():
+    """ Return the custom path used as parent dir from ini. save_to_dir = \\storage\\emulated\\0\\Music """
     ghettoApi.path.config_dir = os.path.dirname(__file__)
     ghettoApi.path.config_name = "settings.ini"
     print(f'\n\tWrite a new path to store files\n.. config file settings.ini in  {ghettoApi.path.config_dir}')
+
+    ghetto_ini.global_config_to_api()  # dump [GLOBAL] section to api dicts
+    parent_dir = ghettoApi.path.save_to_dir
     ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
+    return parent_dir
 
+
+def parent_record_path_change(folder):
+    """ populate variables in GIni
+     """
     try:
         ghetto_ini.global_record_path_write(folder)
     except FileNotFoundError:
         print("--> error, config file is not there or writeable (check path) - proceed")
     ghetto_ini.global_config_get()
     ghetto_ini.global_config_show()
-
