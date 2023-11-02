@@ -56,9 +56,7 @@ def container_setup() -> str:
     if is_android:
         print('\n\tGhettoRecorder Android App\n')
         # we are not allowed to write files from setup apk to user folders
-
-        # del
-        folder = os.path.join('/storage', 'emulated', '089', 'Music')
+        # folder = os.path.join('/storage', 'emulated', '089', 'Music')
         parent_record_path_change("/storage/emulated/0/Music/")  # same as menu 'Change parent record path'
 
     return folder
