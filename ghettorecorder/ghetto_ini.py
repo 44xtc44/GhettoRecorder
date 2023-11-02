@@ -93,12 +93,14 @@ def config_file_read():
     config = configparser.ConfigParser()
     try:
         config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
-        config.read_file(open(config_file_path))
+        with open(config_file_path, 'r') as configfile:
+            config.read_file(configfile)
         return config
     except OSError:
         try:
             config_file_path = os.path.join(gini.dir_name, gini.config_name)
-            config.read_file(open(config_file_path))
+            with open(config_file_path, 'r') as configfile:
+                config.read_file(configfile)
             return config
         except OSError:
             print('OSError in config_parse_get not avail.')
@@ -145,7 +147,8 @@ def global_record_path_write(custom_path):
     config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
 
     config = configparser.ConfigParser()
-    config.read_file(open(config_file_path))
+    with open(config_file_path, 'r') as configfile:
+        config.read_file(configfile)
     config.sections()
     if "GLOBAL" not in config:
         config.add_section('GLOBAL')
@@ -163,7 +166,8 @@ def global_blacklist_enable_write(option):
     config_file_path = os.path.join(ghettoApi.path.config_dir, ghettoApi.path.config_name)
 
     config = configparser.ConfigParser()
-    config.read_file(open(config_file_path))
+    with open(config_file_path, 'r') as configfile:
+        config.read_file(configfile)
     config.sections()
     if "GLOBAL" not in config:
         config.add_section('GLOBAL')
