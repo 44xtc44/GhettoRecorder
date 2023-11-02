@@ -2,14 +2,19 @@
 """
 import os
 import time
-import multiprocessing as mp
+
 
 import ghettorecorder.ghetto_net as net
 from ghettorecorder.__init__ import GhettoRecorder  # without __init__ broken !? [Baustelle]
 from ghettorecorder.ghetto_api import ghettoApi
 
 dir_name = os.path.dirname(__file__)
-mp.set_start_method('spawn', force=True)
+
+if 'ANDROID_STORAGE' not in os.environ:
+    import multiprocessing as mp
+    mp.set_start_method('spawn', force=True)
+else:
+    import queue
 
 
 class ProcEnv:
@@ -88,9 +93,14 @@ def radio_instance_create(radio, url, **kwargs):
     dct[radio].runs_meta = meta
     dct[radio].runs_record = record
     dct[radio].runs_listen = listen
-    dct[radio].com_in = mp.Queue(maxsize=1)  # radio must share one com_in q with others, if mp per CPU is up
-    dct[radio].com_out = mp.Queue(maxsize=1)  # com_out dito
-    dct[radio].audio_out = mp.Queue(maxsize=1)  # audio_out dito
+    if 'ANDROID_STORAGE' not in os.environ:
+        dct[radio].com_in = mp.Queue(maxsize=1)  # radio must share one com_in q with others, if mp per CPU is up
+        dct[radio].com_out = mp.Queue(maxsize=1)  # com_out dito
+        dct[radio].audio_out = mp.Queue(maxsize=1)  # audio_out dito
+    else:
+        dct[radio].com_in = queue.Queue(maxsize=1)
+        dct[radio].com_out = queue.Queue(maxsize=1)
+        dct[radio].audio_out = queue.Queue(maxsize=1)
     dct[radio].start()
     return True
 

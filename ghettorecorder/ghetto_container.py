@@ -11,6 +11,7 @@ Methods
 import os
 import shutil
 import getpass
+from ghettorecorder import ghetto_ini
 from ghettorecorder.ghetto_api import ghettoApi
 
 
@@ -18,10 +19,20 @@ def container_setup() -> str:
     """ return False, empty string if no package specific env variable is set
 
     Copy settings.ini to the container writable user folder.
-    Android Studio copy settings.ini folder from /assets to user folder.
-    ./assets/GhettoRecorder /storage/emulated/0/Music/GhettoRecorder.
 
-     *DOCKER* Variable must be set in package config file Dockerfile or snapcraft.yaml
+    Android Studio 'can not' copy settings.ini from /assets to user folder. Need root access.
+
+    *DOCKER* Variable must be set in package config file Dockerfile or snapcraft.yaml
+
+     Android problem with mp queue. Same as SNAP, but there it was appArmor related.
+              stdlib/multiprocessing/queues.py", line 43, in __init__
+    W    File "stdlib/multiprocessing/context.py", line 68, in Lock
+    W    File "stdlib/multiprocessing/synchronize.py", line 162, in __init__
+    W    File "stdlib/multiprocessing/synchronize.py", line 57, in __init__
+    W    File "./java/android/__init__.py", line 140, in __init__
+    W  OSError: This platform lacks a functioning sem_open implementation, therefore,
+       the required synchronization primitives needed will not function, see issue 3770.
+
 
     :returns: string of folder where settings.ini and blacklist.json resides
     """
@@ -35,17 +46,21 @@ def container_setup() -> str:
         username = getpass.getuser()
         print('Hello, ' + username)
         folder = os.path.join('/home', username, 'GhettoRecorder')
+        create_config_env(folder)
 
     if is_docker:
         print('\n\tGhettoRecorder App in Docker Container\n')
         folder = os.path.join('/tmp', 'GhettoRecorder')
+        create_config_env(folder)
 
     if is_android:
         print('\n\tGhettoRecorder Android App\n')
-        folder = os.path.join('/storage', 'emulated', '0', 'Music', 'GhettoRecorder')
+        # we are not allowed to write files from setup apk to user folders
 
-    if folder:
-        create_config_env(folder)
+        # del
+        folder = os.path.join('/storage', 'emulated', '089', 'Music')
+        parent_record_path_change("/storage/emulated/0/Music/")  # same as menu 'Change parent record path'
+
     return folder
 
 
@@ -73,9 +88,13 @@ def create_config_env(ghetto_folder):
     """
     make_config_folder(ghetto_folder)
     ghettoApi.config_dir = ghetto_folder
-    source_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini')
-    dst_ini = os.path.join(ghetto_folder, 'settings.ini')
-    container_copy_settings(source_ini, dst_ini)
+    conf_dct = {
+        'source_ini': os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.ini'),
+        'dst_ini': os.path.join(ghetto_folder, 'settings.ini'),
+        'source_json': os.path.join(os.path.dirname(os.path.abspath(__file__)), 'blacklist.json'),
+        'dst_json': os.path.join(ghetto_folder, 'blacklist.json')
+    }
+    container_copy_settings(**conf_dct)
 
 
 def make_config_folder(ghetto_folder):
@@ -87,12 +106,31 @@ def make_config_folder(ghetto_folder):
         return False
 
 
-def container_copy_settings(source_ini, dst_ini):
+def container_copy_settings(**kwargs):
     """ Copy settings.ini and never overwrite a user customized settings.ini. """
     try:
-        if not os.path.exists(dst_ini):
-            shutil.copyfile(source_ini, dst_ini)
+        if not os.path.exists(kwargs['dst_ini']):
+            shutil.copyfile(kwargs['source_ini'], kwargs['dst_ini'])
+            shutil.copyfile(kwargs['source_ini'], kwargs['dst_ini'])
     except FileExistsError:
         pass
     except Exception as e:
         print(e)
+
+
+def parent_record_path_change(folder):
+    """ populate variables in GIni
+     """
+    ghettoApi.path.config_dir = os.path.dirname(__file__)
+    ghettoApi.path.config_name = "settings.ini"
+    print(f'\n\tWrite a new path to store files\n.. config file settings.ini in  {ghettoApi.path.config_dir}')
+    ghetto_ini.global_config_get()
+    ghetto_ini.global_config_show()
+
+    try:
+        ghetto_ini.global_record_path_write(folder)
+    except FileNotFoundError:
+        print("--> error, config file is not there or writeable (check path) - proceed")
+    ghetto_ini.global_config_get()
+    ghetto_ini.global_config_show()
+

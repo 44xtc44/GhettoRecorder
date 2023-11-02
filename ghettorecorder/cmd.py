@@ -13,7 +13,8 @@ import ghettorecorder.ghetto_blacklist as ghetto_blacklist
 import ghettorecorder.ghetto_container as container
 from ghettorecorder.ghetto_api import ghettoApi
 
-mp.set_start_method('spawn', force=True)  # http server process
+if 'ANDROID_STORAGE' not in os.environ:
+    mp.set_start_method('spawn', force=True)  # http server process
 
 
 class Entry:
@@ -54,6 +55,7 @@ def init_path():
     entry.config_dir = config_dir
     ghettoApi.path.config_dir = config_dir
     ghettoApi.path.config_name = entry.config_name
+    pass
 
 
 def run_radios(radio_dict):
@@ -120,8 +122,10 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-signal.signal(signal.SIGTERM, signal_handler)
-signal.signal(signal.SIGINT, signal_handler)
+if 'ANDROID_STORAGE' not in os.environ:
+    # crashes the module under Android
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
 
 
 def shutdown():
