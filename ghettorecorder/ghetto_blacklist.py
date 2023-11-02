@@ -205,7 +205,10 @@ def update_radios_blacklists():
             if not type(ghettoApi.blacklist.all_blacklists_dict[radio]) is list:
                 ghettoApi.blacklist.all_blacklists_dict[radio] = []
             ghettoApi.blacklist.all_blacklists_dict[radio].append(new_title)  # AttributeError: 'dict' object has no
-            print(f" -> blacklist {radio}: {new_title.encode('utf-8')}")
+            try:
+                print(f" -> blacklist {radio}: {new_title.encode('utf-8')}")
+            except AttributeError:
+                pass
 
             blacklist_file = os.path.join(helper.blacklist_dir, helper.blacklist_name)
 
