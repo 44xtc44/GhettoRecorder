@@ -216,12 +216,14 @@ class Handler(BaseHTTPRequestHandler):
                             pass  # we run queue.Queue() on Android not mp.Queue, this has no cancel_join_thread
                         break
 
-            if 'ANDROID_STORAGE' not in os.environ:  # Android drains network?
-                idle = round((time.perf_counter() - start))
-                if helper.server_shutdown or idle >= timeout:
-                    print(f'\tGhetto HTTP Handler - release connection {radio}')  # thread is no more locked and can go down
+            idle = round((time.perf_counter() - start))
+            if helper.server_shutdown or idle >= timeout:
+                if 'ANDROID_STORAGE' not in os.environ:  # seems bad Wi-Fi and network detection needed
+                    print(f'\tGhetto HTTP Handler - release connection {radio}')  # thread no more locked, out
                     break
-                time.sleep(.1)
+                else:
+                    print(f'\tAndroid, bad connection? Reset Wi-Fi? {radio}')
+            time.sleep(.2)
 
     @staticmethod
     def generate_index_html():
