@@ -196,7 +196,7 @@ class Handler(BaseHTTPRequestHandler):
         if radio is None or radio == '' or radio[0:1] == '-':
             return
         self.get_send_header(helper.content_type)
-        timeout = 5  # absorb minor network outages
+        timeout = 20 if 'ANDROID_STORAGE' in os.environ else 5  # absorb minor network outages
         start = time.perf_counter()
         while 1:
             if radio in ghettoApi.radio_inst_dict.keys():
@@ -218,11 +218,8 @@ class Handler(BaseHTTPRequestHandler):
 
             idle = round((time.perf_counter() - start))
             if helper.server_shutdown or idle >= timeout:
-                if 'ANDROID_STORAGE' not in os.environ:  # seems bad Wi-Fi and network detection needed
-                    print(f'\tGhetto HTTP Handler - release connection {radio}')  # thread no more locked, out
-                    break
-                else:
-                    print(f'\tAndroid, bad connection? Reset Wi-Fi? {radio}')
+                print(f'\tGhetto HTTP Handler - release connection {radio}')  # thread no more locked, out
+                break
             time.sleep(.2)
 
     @staticmethod
