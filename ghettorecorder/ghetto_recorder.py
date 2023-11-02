@@ -91,9 +91,12 @@ def copy_dst(str_radio, recorder_dst, bin_writer, recorder_src, buf_size):
     :params: recorder_src: absolute path to recorder file
     :params: buf_size: chunk size to fit block size of OS
     """
-    remove_dst(recorder_dst, bin_writer)
-    copy_src_dst(recorder_dst, recorder_src, buf_size)
-    print(f'\n-WRITE->>> {str_radio}: {recorder_dst.encode("utf-8")}\n')
+    try:
+        remove_dst(recorder_dst, bin_writer)
+        copy_src_dst(recorder_dst, recorder_src, buf_size)
+        print(f'\n-WRITE->>> {str_radio}: {recorder_dst.encode("utf-8")}\n')
+    except Exception as e:
+        print("Unusual error in mod ghetto_recorder.py, Android?", e)
 
 
 def remove_dst(rec_dst, bin_writer):

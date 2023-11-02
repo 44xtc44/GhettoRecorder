@@ -150,20 +150,21 @@ class GhettoRecorder(threading.Thread):
         :exception: file extension of stream not available, keep instance running for error evaluation
         :returns: True; 'None' on error, Main can read error_dict and cancel the thread.
         """
+        response = b''
         try:
             response = net.load_url(self.radio_url, self.user_agent)
             self.suffix = net.stream_filetype_url(response, self.radio_name)
         except Exception as e:
             self.error_writer(self.radio_name, f' --->  {self.radio_name} no response. {e}')
-            return
+            self.cancel()
 
         self.content_type = net.content_type_get(response)
         br_head = response.headers["icy-br"] if "icy-br" in response.headers.keys() else None
         br_data = net.bit_rate_get(response.read(io.DEFAULT_BUFFER_SIZE), self.suffix)
         self.bit_rate = br_data if br_data else (int(br_head) if br_head else None)
         if not self.bit_rate:
-            self.error_writer(self.radio_name, 'No bit rate found.')
-            return
+            self.error_writer(self.radio_name, 'No bit rate found - cancel radio connection.')
+            self.cancel()
 
         self.buf_size = net.calc_buffer_size(self.bit_rate)
         return True
