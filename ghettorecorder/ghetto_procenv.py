@@ -54,7 +54,11 @@ def del_radio_instance(radio):
         for q in q_lst:
             while not q.empty():
                 q.get()
-            q.cancel_join_thread()
+            try:
+                q.cancel_join_thread()
+            except AttributeError:  # Android use queue.Queue, cancel_join_thread avail
+                pass
+
         del ghettoApi.radio_inst_dict[radio]
 
     except Exception as e:
