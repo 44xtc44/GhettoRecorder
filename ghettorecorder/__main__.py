@@ -210,7 +210,10 @@ class Handler(BaseHTTPRequestHandler):
                     except OSError:  # browser dropped connection, supress broken pipe error
                         while not audio_out_q.empty():
                             audio_out_q.get()
-                        audio_out_q.cancel_join_thread()  # py q feeder thread, q content is already removed
+                        try:
+                            audio_out_q.cancel_join_thread()  # py q feeder thread, q content is already removed
+                        except AttributeError:
+                            pass  # we run queue.Queue() on Android not mp.Queue, this has no cancel_join_thread
                         break
 
             idle = round((time.perf_counter() - start))
