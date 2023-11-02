@@ -450,7 +450,7 @@ class GhettoRecorder(threading.Thread):
 
         :params: e: error object
         """
-        weak_error_list = ['BrokenPipeError', 'OSError', 'ValueError']
+        weak_error_list = ['BrokenPipeError', 'OSError', 'ValueError', 'FileExistsError']
         strong_error_list = ['ConnectionResetError', 'TypeError']
 
         if type(e).__name__ in weak_error_list:
