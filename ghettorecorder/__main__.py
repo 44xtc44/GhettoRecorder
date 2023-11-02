@@ -406,7 +406,10 @@ class Thread(threading.Thread):
         # Prevent the HTTP server from re-binding every handler.
         # https://stackoverflow.com/questions/46210672/
         httpd.socket = sock
-        httpd.server_bind = self.server_close = lambda self: None
+        # Android, 3 threads, 3 msg "/ghettorecorder/__main__.py:408: ResourceWarning: unclosed <socket.socket fd=113,
+        # family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('0.0.0.0', 0)>"
+        # better would be to have a listener loop on socket to start a thread if needed
+        httpd.server_bind = None
 
         httpd.serve_forever()
 
