@@ -180,10 +180,16 @@ class GhettoRecorder(threading.Thread):
             self.error_writer(self.radio_name, msg)
 
     def open_recorder_file(self):
-        """Make a copy of recorder file, reset seek and flush on title change.
-        """
         self.rec_src = os.path.join(self.radio_dir, '__ghetto_recorder' + self.suffix)
-        self.bin_writer = open(self.rec_src, 'wb')
+        if os.path.isfile(self.rec_src):
+            try:
+                os.remove(self.rec_src)
+            except Exception as e:
+                self.error_handling(e, 'open_recorder_file - rm')
+        try:
+            self.bin_writer = open(self.rec_src, 'wb')
+        except Exception as e:
+            self.error_handling(e, 'open_recorder_file - open')
 
     def start_worker_threads(self):
         """Meta extracts new titles from metadata requests.
