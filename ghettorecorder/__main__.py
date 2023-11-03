@@ -283,6 +283,8 @@ def server_shutdown():
     """Shutdown all radio instances command line style and tell server to shut down."""
     cmd.shutdown()
     helper.server_shutdown = True
+    # sledgehammer method to kill those nasty threads after hours of Java
+    raise Exception("Terminate GhettoRecorder HTTP server threads.")
 
 
 def radio_title_get(radio):
