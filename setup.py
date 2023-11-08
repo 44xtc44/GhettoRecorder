@@ -3,8 +3,6 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# ###############################################
-
 pack_name = "ghettorecorder"
 pack_version = "3.0.0"
 pack_description = "Inet radio grabber"
@@ -22,16 +20,10 @@ setuptools.setup(
     long_description=long_description,
     license='MIT License',
     long_description_content_type="text/markdown",
-    url="",
     include_package_data=True,
     packages=setuptools.find_packages(),
     install_requires=INSTALL_REQUIRES,
     classifiers=[
-        # How mature is this project? Common values are
-        # https://packaging.python.org/guides/distributing-packages-using-setuptools/
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
