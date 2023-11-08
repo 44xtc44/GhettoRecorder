@@ -250,7 +250,8 @@ class Handler(BaseHTTPRequestHandler):
                 if '_o__gr_basket____' in next_line:
                     next_line = f"<img src='data:image/svg+xml;base64,{convert_img('gr_sky_basket.svg')}'/>"
                 if '_o__radio_names____' in next_line:
-                    self.wfile.write(bytes("<div>stop 🌺 listen</div>", "utf-8"))
+                    self.wfile.write(bytes("<div class='divRadioBtn' id='divRadioBtnHead'>stop 🌺 listen</div>",
+                                           "utf-8"))
                     for radio_name in entry.config_file_radio_url_dict.keys():
                         radio_names_line = f"<div class='divRadioBtn' id='div{radio_name}'>" \
                                            "<label><input type='radio' name='da' " \
@@ -283,8 +284,6 @@ def server_shutdown():
     """Shutdown all radio instances command line style and tell server to shut down."""
     cmd.shutdown()
     helper.server_shutdown = True
-    # sledgehammer method to kill those nasty threads after hours of Java
-    raise Exception("Terminate GhettoRecorder HTTP server threads.")
 
 
 def radio_title_get(radio):

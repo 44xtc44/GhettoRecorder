@@ -1,19 +1,11 @@
-/**
-*  - GhettoRecorder is not only an App
-*  - GhettoRecorder provides an interface you can connect to
-*  - develop modules to enhance functionality like the (free) delivered blacklist module
-*  - (A) write your own module to record on demand, if a metadata string matches your table content
-*  - (B) write a listen blacklist module and temporary play local audio files instead
-*  - (C) write a module that dynamically loads only radios of a certain genre or country to serve your hotel guests
-*  - Your module can switch GhettoRecorder features on/off
-*  - provides Python features to switch and read: metadata, record write, listen, response header attributes
-*  - provides Python interfaces to connect to: com_in, com_out, audio_out,
-*
-* This is a JS mini frontend.
-* Showcase: Basic Browser Web audio interface with Python HTTP server to visualize and manipulate network sound.
-*   This is only possible due to the local server, where we circumvent the Browser CORS restrictions.
-* You can deliver a whole multimedia animated show with svg, video, cartoons, 3d plot, blender ... to sell your product.
+/* Basic Browser Web audio interface with Python HTTP server to visualize and manipulate network sound.
+
+  No JQuery in this project!
 */
+const cl = console.log
+var glob = undefined;  // catch error undefined if we are wrong
+var hiddenOnOff = undefined;  // keep status of element display attribute
+
 window.addEventListener('load', function() {
     /**
      * Html loaded, can get id and class now.
@@ -22,22 +14,67 @@ window.addEventListener('load', function() {
     const audioR = document.getElementById('audioR');
     const gainR = document.getElementById('gainR');
     gainR.addEventListener("input", setAudioGain);  // move slider of gain
-    setInterval(ajax_title_get, 30000);
+    setInterval(ajax_title_get, 10000);
     const canvasBalloon = document.getElementById('canvasBalloon');
+    glob = new Glob()
+    glob.updateScreen();
+    hiddenOnOff = new HiddenOnOff()
+    // Gather all elements in the draggable-div class into a collection
+    let draggable = document.querySelectorAll(".draggable-div");
+    draggable.forEach(function(el){
+      dragElement(el);  // animate.js
+      touchMoveMobile(el)  // animate.js
+    });
 })
 ;
+
 class Glob{
   /* *
-   * global variables container, init at the bottom of this script
+   * global variables container and base functions resort
    */
   constructor() {
     this.playingRadio = false; // (browser audio element) <- (http server method loop) <- (py instance.audio_out queue)
     this.waitShutdownIntervalId = 0;  // store id of setInterval to disable setInterval(ajax_wait_shutdown, 2500);
+    this.animationRuns = 0;
+    this.windowWidth = window.innerWidth;
+  }
+  numberRange (start, end) {  // simulate range() of Python
+    return new Array(end - start).fill().map((d, i) => i + start);
+  }
+  // omg it does what it is called
+  getRandomIntInclusive(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  updateScreen() {
+    // press airplane below default record options, in germany this is called nazi, now
+    let divAirOne = document.getElementById('divAirOne');
+    let spanHeaderCenter = document.getElementById('spanHeaderCenter');
+    spanHeaderCenter
+    if(this.windowWidth <= 1080) {
+      divAirOne.style.top = "26em";
+      divAirOne.style.left = "2.0em";
+      spanHeaderCenter.innerHTML = "Ghetto";
+    }else {
+      divAirOne.style.top = "14em";
+      divAirOne.style.left = "2.0em";
+      spanHeaderCenter.innerHTML = "GhettoRecorder";
+    }
   }
 }
 ;
+
+function checkWindowWidth() {
+  glob.windowWidth = window.innerWidth;
+  glob.updateScreen();
+}
+;
+window.addEventListener('resize', checkWindowWidth);
+
+
 class HiddenOnOff{
-    /**
+    /** End the miserable behavior of asking for display attribute and get back bullsh*t. Result in "must" double click.
      * Switch the visibility of an element on/off. Javascript has no Py getattr, setattr. We save elem names as key.
      * Overkill for one or two divs, but becomes handy for reuse.
      * Reading the display status leads often to switch pb. e.g. double click to hide. We save status in vars.
@@ -56,11 +93,15 @@ class HiddenOnOff{
     this.isSwitchedOn['divEditConfig'] = false;  // editor for settings.ini
     this.isSwitchedOn['divEditBlacklist'] = false;  // editor for blacklist.json
     this.isSwitchedOn['divBalloon'] = true;  // canvas balloon with basket
+
     // edit menu option p elements
     this.isSwitchedOn['pShutdown'] = true;
     this.isSwitchedOn['pDocu'] = true;
     this.isSwitchedOn['pEditConfig'] = true;
     this.isSwitchedOn['pEditBlacklist'] = true;
+
+    // Airplane
+    this.isSwitchedOn['svgAirOne'] = true;
   };
   update(options) {
     // set action explicit
@@ -83,22 +124,36 @@ class HiddenOnOff{
     if (!this.isSwitchedOn[options.element]) {
       obj.style.display = 'inline-block';  // toggle
       this.isSwitchedOn[options.element] = true;  // toggle
+
+      // switch on animation for airplane
+      if(options.element == "svgAirOne") {
+        animatedAirplane();
+      }
     } else {
       obj.style.display = 'none';
       this.isSwitchedOn[options.element] = false;
+
+      // switch off animation for airplane
+      if(options.element == "svgAirOne") {
+        cancelAnimation(animatedAirplaneKiller);
+      }
     }
   };
 }
 ;
+
 function audioEnable () {
-    /**
+    /** in INDEX.HTML, overlay div click enables audio
      * User interaction required to enable audio context.
+
+     * Switch on animations.
      */
     setAudioContextVisual();
     draw();  // animate.js
-    initAirOne(); // svgAni.js
+    enableAirplane();
 }
 ;
+
 function setAudioContextVisual() {
     /**
      * Create audio nodes and connect them.
@@ -332,7 +387,3 @@ function ajax_wait_shutdown() {
     xhr.send();
 }
 ;
-
-/* init class */
-var hiddenOnOff = new HiddenOnOff()
-var glob = new Glob()
