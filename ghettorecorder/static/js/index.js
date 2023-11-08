@@ -41,14 +41,14 @@ class Glob{
   numberRange (start, end) {  // simulate range() of Python
     return new Array(end - start).fill().map((d, i) => i + start);
   }
-  // omg it does what it is called
+  // return a random integer
   getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   updateScreen() {
-    // press airplane below default record options, in germany this is called nazi, now
+    // called by checkWindowWidth(); rearrange for mobiles small screens
     let divAirOne = document.getElementById('divAirOne');
     let spanHeaderCenter = document.getElementById('spanHeaderCenter');
     spanHeaderCenter
@@ -222,8 +222,15 @@ function ajax_switch_radio(radio_btn_id) {
       let audioR = document.getElementById('audioR');
       // stopped radio btn has (-) a minus in front of the name
       if (data.radio_name == radio_btn_id) {  // data.radio_name is ajax return value
-        audioR.src='http://localhost:' + data.server_port + '/sound/' + data.radio_name;
-        audioR.play();
+          audioR.src='http://localhost:' + data.server_port + '/sound/' + data.radio_name;
+          let playPromise = audioR.play();    // must check status, else DOM promise error in log
+          if (playPromise !== undefined) {
+            playPromise.then(function() {
+              // "Automatic playback started!"
+            }).catch(function(error) {
+              // "Automatic playback failed."
+            });
+          }
         // set var for interval title scan
         glob.playingRadio = data.radio_name;
       }
