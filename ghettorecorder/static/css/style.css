@@ -43,6 +43,7 @@ h1 {
 #pMsg { /*Display whole dictionary*/
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
+  overflow-wrap: break-word;
 }
 .desk {
   margin-top:50px;

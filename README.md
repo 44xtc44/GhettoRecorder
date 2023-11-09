@@ -1,7 +1,5 @@
-# GhettoRecorder - PYPI readme.md
-Fun app - Grab hundreds of radio stations simultaneously.
-
-Test app - Python owns a working SSL pem file? See <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]>
+# GhettoRecorder
+Grab hundreds of radio stations simultaneously.
 
 ## Overview
 This repository shows the source code of a multiprocessor capable recorder app.
@@ -17,18 +15,28 @@ A documented [example](https://github.com/44xtc44/eisenmp_examples) runs on my [
   <tbody>
     <tr>
       <td>
-        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_cmd.PNG" alt="menu options on command line" style="width:46px"/> 
+        <img src="https://github.com/44xtc44/GhettoRecorder/raw/dev/.github/ghetto_cmd.PNG" alt="menu options on command line" style="width:460px"/> 
       </td>
     </tr>
     <tr>
       <td>
-        <img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_py_http.PNG" alt="custom python multithreading http server" style="width:46px"/>
+        <img src="https://github.com/44xtc44/GhettoRecorder/raw/dev/.github/ghetto_py_http.PNG" alt="custom python multithreading http server" style="width:460px"/>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <img src="https://github.com/44xtc44/GhettoRecorder/raw/dev/.github/screenshot_mobile.png" alt="mobile Android" style="height:460px"/>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="https://github.com/44xtc44/Ghetto-Android">
+            <img src="https://github.com/44xtc44/GhettoRecorder/raw/dev/.github/ghetto-android.png" alt="mobile Android" style="height:460px"/>
+        </a>
       </td>
     </tr>
   </tbody>
 </table>
-
-
 
 
 

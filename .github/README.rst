@@ -1,8 +1,6 @@
-GhettoRecorder - GitHub readme.rst
-===================================
-Fun app - Grab hundreds of radio stations simultaneously.
-
-Test app - Python owns a working SSL pem file? See <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]
+GhettoRecorder
+==============
+Grab hundreds of radio stations simultaneously.
 
 Overview
 ~~~~~~~~~
@@ -19,12 +17,28 @@ A documented `example <https://github.com/44xtc44/eisenmp_examples>`_ runs on my
             :class: with-border
             :width: 609
 
--
+|
 
 .. image:: ./ghetto_py_http.PNG
             :alt: custom python multithreading http server
             :class: with-border
             :width: 609
+
+|
+
+.. image:: ./screenshot_mobile.png
+   :alt: mobile Android
+   :class: with-border
+   :height: 600
+   :target: https://github\.com/44xtc44/Ghetto-Android
+
+|
+
+Android Studio source code
+
+.. image:: ./ghetto-android.png
+   :target: https://github\.com/44xtc44/Ghetto-Android
+
 
 Import
 ~~~~~~~~
@@ -44,7 +58,7 @@ Import
 
 ::
 
-   sudo snap install ghettorecorder
+   $ sudo snap install ghettorecorder
 
 .. image:: ./ghetto_url_no_rotation.png
             :alt: ghetto desktop icon
