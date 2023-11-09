@@ -56,7 +56,7 @@ A documented [example](https://github.com/44xtc44/eisenmp_examples) runs on my [
 
     $ sudo snap install ghettorecorder
 
-<img src="https://github.com/44xtc44/GhettoRecorder/blob/dev/.github/ghetto_url_no_rotation.png" alt="ghetto desktop icon" style="width:46px"/> 
+<img src="https://github.com/44xtc44/GhettoRecorder/raw/dev/.github/ghetto_url_no_rotation.png" alt="ghetto desktop icon" style="width:46px"/> 
 
 
 Desktop icon for the click addicted.
