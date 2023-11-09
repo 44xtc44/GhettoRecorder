@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GhettoRecorder"
-version = "3.0"
+version = "3.1"
 description = "multiprocessor capable internet radio grabber"
 authors = [{name = "René Horn", email = "rene_horn@gmx.net" }]
 keywords = ['internet radio grabber']

@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 pack_name = "ghettorecorder"
-pack_version = "3.0.0"
+pack_version = "3.1"
 pack_description = "Inet radio grabber"
 
 INSTALL_REQUIRES = ['aacRepair', 'certifi', 'configparser']
