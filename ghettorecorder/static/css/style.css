@@ -15,6 +15,10 @@ h1 {
   color:var(--desk-color);
   text-align:center;
 }
+h2 {
+  color:var(--header-color);
+  text-align:center;
+}
 .hiddenDiv {
   display: none;
 }
@@ -23,13 +27,17 @@ h1 {
   display:block;position: 
   fixed;
   width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0,0,0,0.25);
+  height: 90%;
+  top:50px;
+  background-color: #fd7f7f;
   cursor: pointer;
+}
+.pOverlay {
+  margin-left:2em;
+  font-family: roboto, sans;
+  font-weight:300;
+  font-size:110%;
+  color:var(--desk-color);
 }
 /* p elements */
 .pInOut {
@@ -46,7 +54,7 @@ h1 {
   overflow-wrap: break-word;
 }
 .desk {
-  margin-top:50px;
+  margin-top:5px;
   margin-left:auto;
   z-index: -1;
   margin-right:auto;

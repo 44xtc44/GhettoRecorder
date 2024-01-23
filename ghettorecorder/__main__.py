@@ -10,6 +10,7 @@ import time
 import json
 import socket
 import threading
+import webbrowser
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -413,6 +414,12 @@ class Thread(threading.Thread):
         httpd.server_bind = None
 
         httpd.serve_forever()
+
+
+def open_browser():
+    url = f"http://localhost:{server_port}"
+    print(' Browser auto start\n')
+    webbrowser.open(url, new=2)
 
 
 def main():

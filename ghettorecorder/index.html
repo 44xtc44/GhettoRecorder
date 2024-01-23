@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="static/js/index.js" charset="utf-8"></script>
+    <script src="static/js/rest.js" charset="utf-8"></script>
     <script src="static/js/animate.js" charset="utf-8"></script>
+    <script src="static/js/spectrumAnalyzer.js" charset="utf-8"></script>
+    <script src="static/js/doubleDecker.js" charset="utf-8"></script>
     <link rel="icon" href="static/images/ghetto_url.svg">
     <link rel="stylesheet" href="static/css/style.css">
     <link rel='preconnect' href='https://fonts.googleapis.com'>
@@ -17,7 +20,7 @@
 
     <div id="divBalloon">
       <div class="contCanvasBalloon">
-        <div class="draggable-div" id="divCanvasBalloon" onclick="callAnimation();">
+        <div class="draggable-div" id="divCanvasBalloon" onclick="glob.toggleAnimation();">
           <canvas id="canvasBalloon"></canvas>
         </div>
       </div>
@@ -154,17 +157,17 @@
 
         </div>
           <div>
-              <p class=pMid>
-                Play local buffer, or start recorder.
-              </p>
+            <p class=pMid>
+              Play local buffer, or start recorder.
+            </p>
           </div>
 
         <div id='divFlexContainer'>
 
-            <div class='middle'>
+          <div class='middle'>
 
-              _o__radio_names____
-            </div>
+            _o__radio_names____
+          </div>
         </div>
 
         <p id=pTitle class=pInOut> </p>
@@ -174,9 +177,35 @@
 
     </div>
     <div id='divOverlay'
-         onclick="hiddenOnOff.update({element:'divOverlay',set:false});
-         audioEnable();
-         ajax_switch_radio('0');">
+       onclick="hiddenOnOff.update({element:'divOverlay',set:false});
+       audioEnable();
+       ajax_switch_radio('0');">
+
+      <p class="pOverlay">Browser is a tool for GhettoRecorder (GR). Closing the browser does nothing to GR.</p>
+      <p class="pOverlay">Browser can add radios or edit blacklists. Use the Hamburger menu &#127828;.</p>
+
+      <p class="pOverlay">Commandline configures record folder, or path to settings.ini.</p>
+        <p class="pOverlay">
+          <code>
+            python -m ghettorecorder.cmd
+            <br>
+            <br>1 -- Record
+            <br>2 -- Change parent record folder
+            <br>3 -- Enable/disable blacklists
+            <br>4 -- Set path to app config, settings.ini
+            <br>5 -- aac file repair
+            <br>6 -- Browser GUI, start the Python HTTP server
+          </code>
+        </p>
+
+      <p class="pOverlay">
+          Blacklists avoid writing known titles again and again. Unsorted version! See EisenRadio.
+          <br>A recorder refuses to write if the current title is in the list.
+          <br>Remove a title from the radio list to record again.
+      </p>
+
+      <p class="pOverlay">Cheers</p>
+
     </div>
 
     <svg width="0" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg">

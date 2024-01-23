@@ -33,17 +33,19 @@ import os
 from aacrepair import AacRepair
 from ghettorecorder.ghetto_api import ghettoApi
 import ghettorecorder.ghetto_ini as ghetto_ini
-
+from ghettorecorder.__main__ import main as backend_start
+from ghettorecorder.__main__ import open_browser as frontend_start
 
 def menu_main():
     print('\tmenu \'Main\'')
     menu_options = {
-        1: 'Record (local listen option)',
-        2: 'Change parent record path',
+        1: 'Record',
+        2: 'Change parent record folder',
         3: 'Enable/disable blacklists',
-        4: 'Set path to config, settings.ini',
+        4: 'Set path to app config, settings.ini',
         5: 'aac file repair',
-        6: 'Exit',
+        6: 'Browser GUI, start the Python HTTP server',
+        7: 'Exit',
     }
 
     while 1:
@@ -69,6 +71,10 @@ def menu_main():
             aac_file_repair()
             break
         elif option == 6:
+            frontend_start()  # backend loops
+            backend_start()
+            exit()
+        elif option == 7:
             print('Thank you for using GhettoRecorder.')
             exit()
         else:
