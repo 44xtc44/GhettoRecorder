@@ -1,4 +1,4 @@
-// index.js
+// index.js  https://www.typescriptlang.org/docs/handbook/migrating-from-javascript.html
 "use strict";
 
 /**
@@ -13,25 +13,22 @@ const requestAnimationFrame =
   window.msRequestAnimationFrame;
 const cancelAnimationFrame =
   window.cancelAnimationFrame || window.mozCancelAnimationFrame;
-
 const cl = console.log
-var glob = undefined;  // catch error undefined if we are wrong
-var hiddenOnOff = undefined;  // keep status of element display attribute
 
 window.addEventListener('load', function () {
   /**
    * Html loaded, can get id and class now.
    */
-  console.log('All assets are loaded');
+  cl('All assets are loaded');
   document.body.style.overflowX = "hidden";  // get rid of x scroll bar at bottom
   const audioR = document.getElementById('audioR');
   const gainR = document.getElementById('gainR');
   gainR.addEventListener("input", setAudioGain);  // move slider of gain
   setInterval(ajax_title_get, 10000);
   const canvasBalloon = document.getElementById('canvasBalloon');
-  glob = new Glob();
+  window.glob = new Glob();
   glob.updateScreen();
-  hiddenOnOff = new HiddenOnOff()
+  window.hiddenOnOff = new HiddenOnOff()
   // Gather all elements in the draggable-div class into a collection
   let draggable = document.querySelectorAll(".draggable-div");
   draggable.forEach(function (el) {
