@@ -36,6 +36,9 @@ import ghettorecorder.ghetto_ini as ghetto_ini
 from ghettorecorder.__main__ import main as backend_start
 from ghettorecorder.__main__ import open_browser as frontend_start
 
+invalid_msg = "Invalid option"
+
+
 def menu_main():
     print('\tmenu \'Main\'')
     menu_options = {
@@ -44,7 +47,7 @@ def menu_main():
         3: 'Enable/disable blacklists',
         4: 'Set path to app config, settings.ini',
         5: 'aac file repair',
-        6: 'Browser GUI, start the Python HTTP server',
+        6: 'Browser GUI, start the Ghetto HTTP server',
         7: 'Exit',
     }
 
@@ -56,7 +59,7 @@ def menu_main():
         try:
             option = int(input('Enter your choice: '))
         except ValueError:
-            print('Invalid option. Please enter a number between 1 and 4.')
+            print(invalid_msg)
         if option == 1:
             record()
             break
@@ -78,7 +81,7 @@ def menu_main():
             print('Thank you for using GhettoRecorder.')
             exit()
         else:
-            print('Invalid option. Please enter a number between 1 and 6.')
+            print(invalid_msg)
     return
 
 
@@ -96,7 +99,7 @@ def menu_path():
         try:
             option = int(input('Enter your choice: '))
         except ValueError:
-            print('Invalid option. Please enter a number between 1 and 2.')
+            print(invalid_msg)
         if option == 1:
             parent_record_path_change()
             menu_main()
@@ -105,7 +108,7 @@ def menu_path():
             menu_main()
             break
         else:
-            print('Invalid option. Please enter a number between 1 and 2.')
+            print(invalid_msg)
 
 
 def menu_blacklist():
@@ -125,7 +128,7 @@ def menu_blacklist():
         try:
             option = int(input('Enter your choice: '))
         except ValueError:
-            print('Invalid option. Please enter a number between 1 and 3.')
+            print(invalid_msg)
         if option == 1:
             blacklist_on()
             break
@@ -136,7 +139,7 @@ def menu_blacklist():
             menu_main()
             break
         else:
-            print('Invalid option. Please enter a number between 1 and 3.')
+            print(invalid_msg)
 
 
 def menu_find_config():
@@ -154,7 +157,7 @@ def menu_find_config():
         try:
             option = int(input('Enter your choice: '))
         except ValueError:
-            print('Invalid option. Please enter a number between 1 and 2.')
+            print(invalid_msg)
         if option == 1:
             config_path_change()
             break
@@ -162,7 +165,7 @@ def menu_find_config():
             menu_main()
             break
         else:
-            print('Invalid option. Please enter a number between 1 and 2.')
+            print(invalid_msg)
 
 
 def record():

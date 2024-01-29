@@ -3,11 +3,7 @@
   <head lang="en">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="static/js/index.js" charset="utf-8"></script>
-    <script src="static/js/rest.js" charset="utf-8"></script>
-    <script src="static/js/animate.js" charset="utf-8"></script>
-    <script src="static/js/spectrumAnalyzer.js" charset="utf-8"></script>
-    <script src="static/js/doubleDecker.js" charset="utf-8"></script>
+
     <link rel="icon" href="static/images/ghetto_url.svg">
     <link rel="stylesheet" href="static/css/style.css">
     <link rel='preconnect' href='https://fonts.googleapis.com'>
@@ -79,9 +75,7 @@
         </div>
 
         <div id="divControllerSlider" class="hiddenDiv">
-            <audio controls id='audioR'>
-              <source src=''>
-            </audio>
+            <audio controls id='audioR'></audio>
 
             <input id='gainR'
                    type="range" value="1" min="1" max="3" step="0.1"
@@ -112,7 +106,7 @@
                         ">
               <label for="configFileEdit">
                 <span class="spanBigBtn">
-                  &#128251; Edit radio config
+                  &#128251; Edit radio config (restart app)
                 </span>
                 <br><span id="configFileEditPath"></span>
               </label>
@@ -178,31 +172,25 @@
     </div>
     <div id='divOverlay'
        onclick="hiddenOnOff.update({element:'divOverlay',set:false});
-       audioEnable();
-       ajax_switch_radio('0');">
+       audioEnable();">
 
       <p class="pOverlay">Browser is a tool for GhettoRecorder (GR). Closing the browser does nothing to GR.</p>
-      <p class="pOverlay">Browser can add radios or edit blacklists. Use the Hamburger menu.</p>
-
-      <p class="pOverlay">GR core is an importable Python module. <code>from ghettorecorder import GhettoRecorder</code></p>
-        <p class="pOverlay">
-          <code>
-            python -m ghettorecorder.cmd
-            <br>
-            <br>1 -- Record
-            <br>2 -- Change parent record folder
-            <br>3 -- Enable/disable blacklists
-            <br>4 -- Set path to app config, settings.ini
-            <br>5 -- aac file repair
-            <br>6 -- Browser GUI, start the Python HTTP server
-          </code>
-        </p>
-
+      <p class="pOverlay">Browser adds radios or quick edit blacklists. Use the Hamburger menu.</p>
       <p class="pOverlay">
           Blacklists avoid writing known titles again and again. Unsorted version! See EisenRadio.
           <br>A recorder refuses to write if the current title is in the list.
           <br>Remove a title from the radio list to record again.
       </p>
+      <p class="pOverlay">Balloon and Airplane are draggable decoration.</p>
+      <p class="pOverlay">GR core is an importable Python module. <code>from ghettorecorder import GhettoRecorder</code></p>
+        <p class="pOverlay">
+          <code>
+            pip install ghettorecorder
+            <br>python -m ghettorecorder  # browser frontend and local Ghetto HTTP server
+            <br>python -m ghettorecorder.cmd  # All options terminal (blacklist, repair, parent folder)
+            <br>GitHub latest: https://github.com/44xtc44/GhettoRecorder
+          </code>
+        </p>
 
       <p class="pOverlay">Cheers</p>
 
@@ -259,3 +247,8 @@
 
   </body>
 </html>
+    <script src="static/js/index.js" charset="utf-8"></script>
+    <script src="static/js/rest.js" charset="utf-8"></script>
+    <script src="static/js/animate.js" charset="utf-8"></script>
+    <script src="static/js/spectrumAnalyzer.js" charset="utf-8"></script>
+    <script src="static/js/doubleDecker.js" charset="utf-8"></script>

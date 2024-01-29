@@ -1,0 +1,22 @@
+Migration JS to TypeScript
+--------------------------
+https://www.typescriptlang.org/docs/handbook/migrating-from-javascript.html
+configuration file: tsconfig.json
+
+MS VScode https://code.visualstudio.com/download
+// run JS without a browser, Node.js https://nodejs.org/en/download
+
+npm init (makes a package from current folder, this is not what we want here)
+  put
+  "scripts": {
+    "tsc": "tsc"
+  }
+  in package.json (in root of pkg)
+node build/app.js  (run JS without browser, this is not what we want here)
+
+
+npm install typescript -s
+npm run tsc -- --init  (create the tsconfig.json file with 100 options)
+  terminal to folder with ts files
+npm run tsc  (compile)
+
